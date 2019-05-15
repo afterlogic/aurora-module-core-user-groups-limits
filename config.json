@@ -1,0 +1,10 @@
+{
+	"Disabled": [
+		false,
+		"bool"
+	],
+	"MailSignature": [
+		"Sent with Afterlogic WebMail",
+		"string"
+	]
+}
