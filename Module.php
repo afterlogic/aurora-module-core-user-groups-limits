@@ -29,6 +29,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('CoreUserGroups::SaveGroupsOfUser::after', array($this, 'onAfterSaveGroupsOfUser'));
 		
 		$this->subscribeEvent('PersonalFiles::GetUserSpaceLimitMb', array($this, 'onGetUserSpaceLimitMb'));
+
+		$this->subscribeEvent('System::RunEntry::before', array($this, 'onBeforeRunEntry'));
 	}
 	
 	private function getGroupName($iUserId)
@@ -189,6 +191,34 @@ class Module extends \Aurora\System\Module\AbstractModule
 			if ($oCpanelIntegratorDecorator)
 			{
 				$oCpanelIntegratorDecorator->SetMailQuota($oUser->PublicId, $iMailQuota);
+			}
+		}
+	}
+
+	public function onBeforeRunEntry(&$aArgs, &$mResult)
+	{
+		$iUserId = \Aurora\Api::getAuthenticatedUserId();
+		if (isset($aArgs['EntryName']) && strtolower($aArgs['EntryName']) === 'api')
+		{
+			$sXClientHeader =  \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
+
+			if ($sXClientHeader && strtolower($sXClientHeader) !== 'webclient' && $this->getGroupName($iUserId) === 'Free')
+			{
+				$mResult = \Aurora\System\Managers\Response::GetJsonFromObject(
+					'Json', 
+					\Aurora\System\Managers\Response::ExceptionResponse(
+						'RunEntry', 
+						new \Aurora\System\Exceptions\ApiException(
+							\Aurora\System\Notifications::AccessDenied,
+							null, 
+							'', 
+							[], 
+							$this
+						)	
+					)
+				);
+
+				return true;
 			}
 		}
 	}
