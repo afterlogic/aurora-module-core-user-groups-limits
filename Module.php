@@ -190,7 +190,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oCpanelIntegratorDecorator = \Aurora\Modules\CpanelIntegrator\Module::Decorator();
 			if ($oCpanelIntegratorDecorator)
 			{
-				$oCpanelIntegratorDecorator->SetMailQuota($oUser->PublicId, $iMailQuota);
+				try
+				{
+					$oCpanelIntegratorDecorator->SetMailQuota($oUser->PublicId, $iMailQuota);
+				}
+				catch (\Exception $oException)
+				{
+					\Aurora\System\Api::LogException($oException);
+				}
 			}
 		}
 	}
