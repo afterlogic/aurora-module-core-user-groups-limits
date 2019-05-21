@@ -31,6 +31,31 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('PersonalFiles::GetUserSpaceLimitMb', array($this, 'onGetUserSpaceLimitMb'));
 
 		$this->subscribeEvent('System::RunEntry::before', array($this, 'onBeforeRunEntry'));
+		
+		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
+		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User && $oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)
+		{
+			$this->aAdditionalEntityFieldsToEdit = [
+				[
+					'DisplayName' => $this->i18N('LABEL_ITS_BUSINESS_TENANT'),
+					'Entity' => 'Tenant',
+					'FieldName' => self::GetName() . '::IsBusiness',
+					'FieldType' => 'bool',
+					'Hint' => $this->i18N('HINT_ITS_BUSINESS_TENANT')
+				],
+			];
+		}
+
+		$this->subscribeEvent('AdminPanelWebclient::UpdateEntity::after', array($this, 'onAfterUpdateEntity'));
+		$this->subscribeEvent('AdminPanelWebclient::CreateTenant::after', array($this, 'onAfterCreateTenant'));
+		$this->subscribeEvent('Core::Tenant::ToResponseArray', array($this, 'onTenantToResponseArray'));
+		
+		\Aurora\Modules\Core\Classes\Tenant::extend(
+			self::GetName(),
+			[
+				'IsBusiness' => array('bool', false),
+			]
+		);		
 	}
 	
 	private function getGroupName($iUserId)
@@ -226,6 +251,53 @@ class Module extends \Aurora\System\Module\AbstractModule
 				);
 
 				return true;
+			}
+		}
+	}
+	
+	public function onTenantToResponseArray($aArgs, &$mResult)
+	{
+		$oTenant = $aArgs['Tenant'];
+		if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant && is_array($mResult))
+		{
+			$mResult[self::GetName() . '::IsBusiness'] = $oTenant->{self::GetName() . '::IsBusiness'};
+		}
+	}
+	
+	public function onAfterUpdateEntity(&$aArgs, &$mResult)
+	{
+		if ($aArgs['Type'] === 'Tenant' && is_array($aArgs['Data']))
+		{
+			$iTenantId = $aArgs['Data']['Id'];
+			
+			if (!empty($iTenantId))
+			{
+				$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($iTenantId);
+				if ($oTenant)
+				{
+					if (isset($aArgs['Data'][self::GetName() . '::IsBusiness']) && is_bool($aArgs['Data'][self::GetName() . '::IsBusiness']))
+					{
+						$oTenant->{self::GetName() . '::IsBusiness'} = $aArgs['Data'][self::GetName() . '::IsBusiness'];
+					}
+					return \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->updateTenant($oTenant);
+				}
+			}
+		}
+	}
+	
+	public function onAfterCreateTenant(&$aArgs, &$mResult)
+	{
+		$iTenantId = $mResult;
+		if (!empty($iTenantId))
+		{
+			$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($iTenantId);
+			if ($oTenant)
+			{
+				if (isset($aArgs[self::GetName() . '::IsBusiness']) && is_bool($aArgs[self::GetName() . '::IsBusiness']))
+				{
+					$oTenant->{self::GetName() . '::IsBusiness'} = $aArgs[self::GetName() . '::IsBusiness'];
+				}
+				return \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->updateTenant($oTenant);
 			}
 		}
 	}
