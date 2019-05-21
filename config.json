@@ -3,6 +3,32 @@
 		false,
 		"bool"
 	],
+	"GroupsLimits": [
+		[
+			{
+				"GroupName": "Free",
+				"MailSignature": "Sent with Afterlogic WebMail",
+				"MailQuotaMb": "100",
+				"FilesQuotaMb": "500",
+				"AllowMobileApps": false
+			},
+			{
+				"GroupName": "Standard",
+				"MailSignature": "",
+				"MailQuotaMb": "5120",
+				"FilesQuotaMb": "10240",
+				"AllowMobileApps": true
+			},
+			{
+				"GroupName": "Pro",
+				"MailSignature": "",
+				"MailQuotaMb": "20480",
+				"FilesQuotaMb": "20480",
+				"AllowMobileApps": true
+			}
+		],
+		"array"
+	],
 	"MailSignature": [
 		"Sent with Afterlogic WebMail",
 		"string"

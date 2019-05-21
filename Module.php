@@ -74,6 +74,23 @@ class Module extends \Aurora\System\Module\AbstractModule
 		return $sGroupName;
 	}
 	
+	protected function getGroupSetting($iUserId, $sSettingName)
+	{
+		$sGroupName = $this->getGroupName($iUserId);
+		$aGroupsLimits = $this->getConfig('GroupsLimits', '');
+		$mSettingValue = null;
+		$iIndex = array_search($sGroupName, array_column($aGroupsLimits, 'GroupName'));
+		if ($iIndex === false)
+		{
+			$iIndex = 0;
+		}
+		if (isset($aGroupsLimits[$iIndex]) && isset($aGroupsLimits[$iIndex][$sSettingName]))
+		{
+			$mSettingValue = $aGroupsLimits[$iIndex][$sSettingName];
+		}
+		return $mSettingValue;
+	}
+	
 	/**
 	 * @param array $aArguments
 	 * @param mixed $mResult
@@ -81,24 +98,19 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function onBeforeSendMessage(&$aArguments, &$mResult)
 	{
 		$iAuthenticatedUserId = \Aurora\System\Api::getAuthenticatedUserId();
-		$sGroupName = $this->getGroupName($iAuthenticatedUserId);
-		if ($sGroupName === 'Free')
+		$sMailSignature = $this->getGroupSetting($iAuthenticatedUserId, 'MailSignature');
+		if (is_string($sMailSignature) && $sMailSignature !== '')
 		{
-			$aArguments['Text'] .= ($aArguments['IsHtml'] ? '<br />' : "\r\n") . $this->getConfig('MailSignature', '');
+			$aArguments['Text'] .= ($aArguments['IsHtml'] ? '<br />' : "\r\n") . $sMailSignature;
 		}
 	}
 	
 	public function onGetUserSpaceLimitMb(&$aArgs, &$mResult)
 	{
-		$sGroupName = $this->getGroupName($aArgs['UserId']);
-		$mResult = 500; // 500mb for Free
-		if ($sGroupName === 'Standard')
+		$iFilesQuotaMb = $this->getGroupSetting($aArgs['UserId'], 'FilesQuotaMb');
+		if (is_int($iFilesQuotaMb))
 		{
-			$mResult = 10 * 1024; // 10GB
-		}
-		if ($sGroupName === 'Pro')
-		{
-			$mResult = 20 * 1024; // 20GB
+			$mResult = $iFilesQuotaMb;
 		}
 	}
 	
@@ -201,19 +213,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
-			$sGroupName = $this->getGroupName($oUser->EntityId);
-			$iMailQuota = 100; // 100mb
-			if ($sGroupName === 'Standard')
-			{
-				$iMailQuota = 5 * 1024; // 5GB
-			}
-			if ($sGroupName === 'Pro')
-			{
-				$iMailQuota = 20 * 1024; // 20GB
-			}
-			
 			$oCpanelIntegratorDecorator = \Aurora\Modules\CpanelIntegrator\Module::Decorator();
-			if ($oCpanelIntegratorDecorator)
+			$iMailQuotaMb = $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
+			if ($oCpanelIntegratorDecorator && is_int($iMailQuotaMb))
 			{
 				try
 				{
@@ -232,9 +234,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$iUserId = \Aurora\Api::getAuthenticatedUserId();
 		if (isset($aArgs['EntryName']) && strtolower($aArgs['EntryName']) === 'api')
 		{
-			$sXClientHeader =  \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
-
-			if ($sXClientHeader && strtolower($sXClientHeader) !== 'webclient' && $this->getGroupName($iUserId) === 'Free')
+			$sXClientHeader = \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
+			$bAllowMobileApps = $this->getGroupSetting($iUserId, 'AllowMobileApps');
+			if ($sXClientHeader && strtolower($sXClientHeader) !== 'webclient' && (!is_bool($bAllowMobileApps) || !$bAllowMobileApps))
 			{
 				$mResult = \Aurora\System\Managers\Response::GetJsonFromObject(
 					'Json', 
