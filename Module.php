@@ -61,7 +61,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	private function getGroupName($iUserId)
 	{
 		$oCoreUserGroupsDecorator = \Aurora\Modules\CoreUserGroups\Module::Decorator();
-		$aUserGroups = $oCoreUserGroupsDecorator->GetGroupNamesOfUser($iUserId);
+		$aUserGroups = ($iUserId !== 0) ? $oCoreUserGroupsDecorator->GetGroupNamesOfUser($iUserId) : [];
 		$sGroupName = 'Free';
 		if (in_array('Pro', $aUserGroups))
 		{
