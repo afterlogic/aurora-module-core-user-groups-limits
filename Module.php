@@ -232,7 +232,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function onBeforeRunEntry(&$aArgs, &$mResult)
 	{
 		$iUserId = \Aurora\Api::getAuthenticatedUserId();
-		if (isset($aArgs['EntryName']) && strtolower($aArgs['EntryName']) === 'api')
+		if ($iUserId > 0 && isset($aArgs['EntryName']) && strtolower($aArgs['EntryName']) === 'api')
 		{
 			$sXClientHeader = \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
 			$bAllowMobileApps = $this->getGroupSetting($iUserId, 'AllowMobileApps');
