@@ -29,6 +29,15 @@
 		],
 		"array"
 	],
+	"BusinessTenantLimits": [
+		[{
+			"AliasesCount": 20,
+			"EmailAccountsCount": 10,
+			"MailStorageQuotaMb": 102400,
+			"FilesStorageQuotaMb": 102400
+		}],
+		"array"
+	],
 	"MailSignature": [
 		"Sent with Afterlogic WebMail",
 		"string"

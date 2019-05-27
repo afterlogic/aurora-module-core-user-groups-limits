@@ -27,6 +27,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('CoreUserGroups::RemoveUsersFromGroup::after', array($this, 'onAfterRemoveUsersFromGroup'));
 		$this->subscribeEvent('CoreUserGroups::AddToGroup::after', array($this, 'onAfterAddToGroup'));
 		$this->subscribeEvent('CoreUserGroups::SaveGroupsOfUser::after', array($this, 'onAfterSaveGroupsOfUser'));
+		$this->subscribeEvent('CoreUserGroups::GetGroups::before', array($this, 'onBeforeGetGroups'));
+		$this->subscribeEvent('CoreUserGroups::CreateGroup::before', array($this, 'onBeforeCreateGroup'));
+		
+		$this->subscribeEvent('CpanelIntegrator::CreateAlias::before', array($this, 'onBeforeCreateAlias'));
+		$this->subscribeEvent('CpanelIntegrator::GetSettings::after', array($this, 'onAfterGetSettings'));
 		
 		$this->subscribeEvent('PersonalFiles::GetUserSpaceLimitMb', array($this, 'onGetUserSpaceLimitMb'));
 
@@ -41,12 +46,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 					'Entity' => 'Tenant',
 					'FieldName' => self::GetName() . '::IsBusiness',
 					'FieldType' => 'bool',
-					'Hint' => $this->i18N('HINT_ITS_BUSINESS_TENANT')
+					'Hint' => $this->i18N('HINT_ITS_BUSINESS_TENANT_HTML'),
+					'EnableOnCreate' => true,
+					'EnableOnEdit' => false,
 				],
 			];
 		}
 
-		$this->subscribeEvent('AdminPanelWebclient::UpdateEntity::after', array($this, 'onAfterUpdateEntity'));
+		$this->subscribeEvent('Core::CreateUser::before', array($this, 'onBeforeCreateUser'));
 		$this->subscribeEvent('AdminPanelWebclient::CreateTenant::after', array($this, 'onAfterCreateTenant'));
 		$this->subscribeEvent('Core::Tenant::ToResponseArray', array($this, 'onTenantToResponseArray'));
 		
@@ -176,11 +183,58 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 * @param array $aArgs
 	 * @param mixed $mResult
 	 */
-	public function onAfterSaveGroupsOfUser(&$aArgs, &$mResult)
+	public function onAfterSaveGroupsOfUser($aArgs, &$mResult)
 	{
 		if ($mResult)
 		{
 			$this->setUserListCapabilities([$aArgs['UserId']]);
+		}
+	}
+	
+	public function onAfterGetSettings($aArgs, &$mResult)
+	{
+		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
+		if ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin)
+		{
+			$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($oAuthenticatedUser->IdTenant);
+			if ($oTenant && !$oTenant->{self::GetName() . '::IsBusiness'})
+			{
+				$mResult['AllowAliases'] = false;
+			}
+		}
+	}
+	
+	public function onBeforeCreateAlias($aArgs, &$mResult)
+	{
+		$iTenantId = $aArgs['TenantId'];
+		$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($iTenantId);
+		if ($oTenant && $oTenant->{self::GetName() . '::IsBusiness'})
+		{
+			$iAliasesCount = $this->getBusinessTenantLimits('AliasesCount');
+			if (is_array($aArgs['Forwarders']) && count($aArgs['Forwarders']) >= $iAliasesCount)
+			{
+				throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_ALIASES_LIMIT'));
+			}
+		}
+	}
+	
+	public function onBeforeGetGroups($aArgs, &$mResult)
+	{
+		$iTenantId = $aArgs['TenantId'];
+		$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($iTenantId);
+		if ($oTenant && $oTenant->{self::GetName() . '::IsBusiness'})
+		{
+			throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_NOT_ALLOWED_HAVE_GROUPS'));
+		}
+	}
+	
+	public function onBeforeCreateGroup(&$aArgs, &$mResult)
+	{
+		$iTenantId = $aArgs['TenantId'];
+		$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($iTenantId);
+		if ($oTenant && $oTenant->{self::GetName() . '::IsBusiness'})
+		{
+			throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_NOT_ALLOWED_HAVE_GROUPS'));
 		}
 	}
 	
@@ -213,17 +267,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
-			$oCpanelIntegratorDecorator = \Aurora\Modules\CpanelIntegrator\Module::Decorator();
-			$iMailQuotaMb = $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
-			if ($oCpanelIntegratorDecorator && is_int($iMailQuotaMb))
+			$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($oUser->IdTenant);
+			if ($oTenant && !$oTenant->{self::GetName() . '::IsBusiness'})
 			{
-				try
+				$oMailDecorator = \Aurora\Modules\Mail\Module::Decorator();
+				$iMailQuotaMb = $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
+				if ($oMailDecorator && is_int($iMailQuotaMb))
 				{
-					$oCpanelIntegratorDecorator->SetMailQuota($oUser->PublicId, $iMailQuota);
-				}
-				catch (\Exception $oException)
-				{
-					\Aurora\System\Api::LogException($oException);
+					$oMailDecorator->UpdateEntityQuota('User', $oUser->EntityId, $oUser->IdTenant, $iMailQuotaMb);
 				}
 			}
 		}
@@ -266,28 +317,34 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 	
-	public function onAfterUpdateEntity(&$aArgs, &$mResult)
+	protected function getBusinessTenantLimits($sSettingName)
 	{
-		if ($aArgs['Type'] === 'Tenant' && is_array($aArgs['Data']))
+		$aBusinessTenantLimitsConfig = $this->getConfig('BusinessTenantLimits', []);
+		$aBusinessTenantLimits = is_array($aBusinessTenantLimitsConfig) && count($aBusinessTenantLimitsConfig) > 0 ? $aBusinessTenantLimitsConfig[0] : [];
+		return is_array($aBusinessTenantLimitsConfig) && isset($aBusinessTenantLimits[$sSettingName]) ? $aBusinessTenantLimits[$sSettingName] : null;
+	}
+	
+	public function onBeforeCreateUser($aArgs, &$mResult)
+	{
+		$iTenantId = $aArgs['TenantId'];
+		$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($iTenantId);
+		if ($oTenant && $oTenant->{self::GetName() . '::IsBusiness'})
 		{
-			$iTenantId = $aArgs['Data']['Id'];
-			
-			if (!empty($iTenantId))
+			$iEmailAccountsLimit = $this->getBusinessTenantLimits('EmailAccountsCount');
+			if (is_int($iEmailAccountsLimit) && $iEmailAccountsLimit > 0)
 			{
-				$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($iTenantId);
-				if ($oTenant)
+				$oEavManager = \Aurora\System\Managers\Eav::getInstance();
+				$aFilters = ['IdTenant' => [$iTenantId, '=']];
+				$iUserCount = $oEavManager->getEntitiesCount(\Aurora\Modules\Core\Classes\User::class, $aFilters);
+				if ($iUserCount >= $iEmailAccountsLimit)
 				{
-					if (isset($aArgs['Data'][self::GetName() . '::IsBusiness']) && is_bool($aArgs['Data'][self::GetName() . '::IsBusiness']))
-					{
-						$oTenant->{self::GetName() . '::IsBusiness'} = $aArgs['Data'][self::GetName() . '::IsBusiness'];
-					}
-					return \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->updateTenant($oTenant);
+					throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_EMAIL_ACCOUNTS_LIMIT'));
 				}
 			}
 		}
 	}
 	
-	public function onAfterCreateTenant(&$aArgs, &$mResult)
+	public function onAfterCreateTenant($aArgs, &$mResult)
 	{
 		$iTenantId = $mResult;
 		if (!empty($iTenantId))
@@ -298,8 +355,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 				if (isset($aArgs[self::GetName() . '::IsBusiness']) && is_bool($aArgs[self::GetName() . '::IsBusiness']))
 				{
 					$oTenant->{self::GetName() . '::IsBusiness'} = $aArgs[self::GetName() . '::IsBusiness'];
+					$oTenant->{'Mail::AllowGlobalQuota'} = $oTenant->{self::GetName() . '::IsBusiness'};
+					$iMailStorageQuotaMb = $this->getBusinessTenantLimits('MailStorageQuotaMb');
+					if (is_int($iMailStorageQuotaMb))
+					{
+						$oTenant->{'Mail::GlobalQuotaMb'} = $iMailStorageQuotaMb;
+					}
+					return \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->updateTenant($oTenant);
 				}
-				return \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->updateTenant($oTenant);
 			}
 		}
 	}
