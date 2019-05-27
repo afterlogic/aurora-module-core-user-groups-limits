@@ -276,6 +276,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 				{
 					$oMailDecorator->UpdateEntityQuota('User', $oUser->EntityId, $oUser->IdTenant, $iMailQuotaMb);
 				}
+
+				$oFilesDecorator = \Aurora\Modules\Files\Module::Decorator();
+				$iFilesQuotaMb = $this->getGroupSetting($oUser->EntityId, 'FilesQuotaMb');
+				if ($oFilesDecorator && is_int($iFilesQuotaMb))
+				{
+					$oFilesDecorator->UpdateUserSpaceLimit($oUser->EntityId, $iFilesQuotaMb);
+				}
 			}
 		}
 	}
