@@ -276,7 +276,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$iMailQuotaMb = $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
 				if ($oMailDecorator && is_int($iMailQuotaMb))
 				{
-					$oMailDecorator->UpdateEntityQuota('User', $oUser->EntityId, $oUser->IdTenant, $iMailQuotaMb);
+					$oMailDecorator->UpdateEntitySpaceLimits('User', $oUser->EntityId, $oUser->IdTenant, $iMailQuotaMb);
 				}
 
 				$oFilesDecorator = \Aurora\Modules\Files\Module::Decorator();
@@ -386,37 +386,39 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if (!empty($iTenantId))
 		{
 			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($iTenantId);
-			if ($oTenant)
+			if ($oTenant && isset($aArgs[self::GetName() . '::IsBusiness']) && is_bool($aArgs[self::GetName() . '::IsBusiness']))
 			{
-				if (isset($aArgs[self::GetName() . '::IsBusiness']) && is_bool($aArgs[self::GetName() . '::IsBusiness']))
-				{
-					$aAttributesForeSave = [];
+				$aAttributesToSave = [];
 
-					$oTenant->{self::GetName() . '::IsBusiness'} = $aArgs[self::GetName() . '::IsBusiness'];
-					$aAttributesForeSave[] = self::GetName() . '::IsBusiness';
-					$oTenant->{'Mail::AllowGlobalQuota'} = $oTenant->{self::GetName() . '::IsBusiness'};
+				$oTenant->{self::GetName() . '::IsBusiness'} = $aArgs[self::GetName() . '::IsBusiness'];
+				$aAttributesToSave[] = self::GetName() . '::IsBusiness';
+
+				if ($oTenant->{self::GetName() . '::IsBusiness'})
+				{
 					$iMailStorageQuotaMb = $this->getBusinessTenantLimits('MailStorageQuotaMb');
 					if (is_int($iMailStorageQuotaMb))
 					{
-						$oTenant->{'Mail::GlobalQuotaMb'} = $iMailStorageQuotaMb;
-						$aAttributesForeSave[] = 'Mail::GlobalQuotaMb';
+						$oTenant->{'Mail::TenantSpaceLimitMb'} = $iMailStorageQuotaMb;
+						$aAttributesToSave[] = 'Mail::TenantSpaceLimitMb';
 					}
-
-					if ($oTenant->{self::GetName() . '::IsBusiness'})
+					
+					$oFilesModule = \Aurora\Api::GetModule('Files');
+					if ($oFilesModule)
 					{
-						$oFilesModule = \Aurora\Api::GetModule('Files');
-						if ($oFilesModule)
-						{
-							$oTenant->{'Files::UserSpaceLimitMb'} = $oFilesModule->getConfig('UserSpaceLimitMb');
-							$oTenant->{'Files::TenantSpaceLimitMb'} = $oFilesModule->getConfig('TenantSpaceLimitMb');
-			
-							$aAttributesForeSave[] = 'Files::UserSpaceLimitMb';
-							$aAttributesForeSave[] = 'Files::TenantSpaceLimitMb';
-						}
-					}
+						$oTenant->{'Files::UserSpaceLimitMb'} = $oFilesModule->getConfig('UserSpaceLimitMb');
+						$oTenant->{'Files::TenantSpaceLimitMb'} = $oFilesModule->getConfig('TenantSpaceLimitMb');
 
-					$oTenant->saveAttributes($aAttributesForeSave);
+						$aAttributesToSave[] = 'Files::UserSpaceLimitMb';
+						$aAttributesToSave[] = 'Files::TenantSpaceLimitMb';
+					}
 				}
+				else
+				{
+					$oTenant->{'Mail::AllowChangeUserSpaceLimit'} = false;
+					$aAttributesToSave[] = 'Mail::AllowChangeUserSpaceLimit';
+				}
+
+				$oTenant->saveAttributes($aAttributesToSave);
 			}
 		}
 	}
