@@ -36,6 +36,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('PersonalFiles::GetUserSpaceLimitMb', array($this, 'onGetUserSpaceLimitMb'));
 
 		$this->subscribeEvent('System::RunEntry::before', array($this, 'onBeforeRunEntry'));
+		$this->subscribeEvent('Files::GetSettingsForEntity::after', array($this, 'onAfterGetSettingsForEntity'));
 		
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
 		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User && $oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)
@@ -56,6 +57,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('Core::CreateUser::before', array($this, 'onBeforeCreateUser'));
 		$this->subscribeEvent('AdminPanelWebclient::CreateTenant::after', array($this, 'onAfterCreateTenant'));
 		$this->subscribeEvent('Core::Tenant::ToResponseArray', array($this, 'onTenantToResponseArray'));
+		$this->subscribeEvent('Core::CreateUser::after', array($this, 'onAfterCreateUser'));
 		
 		\Aurora\Modules\Core\Classes\Tenant::extend(
 			self::GetName(),
@@ -351,25 +353,82 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 	
+	/**
+	 * 
+	 * @param array $aArgs
+	 * @param mixed $mResult
+	 */
+	public function onAfterCreateUser($aArgs, &$mResult)
+	{
+		if ($mResult)
+		{
+			$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUser($mResult);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+			{
+				$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($oUser->IdTenant);
+				if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
+				{
+					$UserSpaceLimitMb = $oTenant->{'Files::UserSpaceLimitMb'};
+
+					\Aurora\Modules\Files\Module::Decorator()->CheckAllocatedSpaceLimitForUsersInTenant($oTenant, $UserSpaceLimitMb);
+
+					$oUser->{'Files::UserSpaceLimitMb'} = $UserSpaceLimitMb;
+					$oUser->saveAttribute('Files::UserSpaceLimitMb');
+				}
+			}
+		}
+	}
+
+
 	public function onAfterCreateTenant($aArgs, &$mResult)
 	{
 		$iTenantId = $mResult;
 		if (!empty($iTenantId))
 		{
-			$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($iTenantId);
+			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($iTenantId);
 			if ($oTenant)
 			{
 				if (isset($aArgs[self::GetName() . '::IsBusiness']) && is_bool($aArgs[self::GetName() . '::IsBusiness']))
 				{
+					$aAttributesForeSave = [];
+
 					$oTenant->{self::GetName() . '::IsBusiness'} = $aArgs[self::GetName() . '::IsBusiness'];
+					$aAttributesForeSave[] = self::GetName() . '::IsBusiness';
 					$oTenant->{'Mail::AllowGlobalQuota'} = $oTenant->{self::GetName() . '::IsBusiness'};
 					$iMailStorageQuotaMb = $this->getBusinessTenantLimits('MailStorageQuotaMb');
 					if (is_int($iMailStorageQuotaMb))
 					{
 						$oTenant->{'Mail::GlobalQuotaMb'} = $iMailStorageQuotaMb;
+						$aAttributesForeSave[] = 'Mail::GlobalQuotaMb';
 					}
-					return \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->updateTenant($oTenant);
+
+					if ($oTenant->{self::GetName() . '::IsBusiness'})
+					{
+						$oFilesModule = \Aurora\Api::GetModule('Files');
+						if ($oFilesModule)
+						{
+							$oTenant->{'Files::UserSpaceLimitMb'} = $oFilesModule->getConfig('UserSpaceLimitMb');
+							$oTenant->{'Files::TenantSpaceLimitMb'} = $oFilesModule->getConfig('TenantSpaceLimitMb');
+			
+							$aAttributesForeSave[] = 'Files::UserSpaceLimitMb';
+							$aAttributesForeSave[] = 'Files::TenantSpaceLimitMb';
+						}
+					}
+
+					$oTenant->saveAttributes($aAttributesForeSave);
 				}
+			}
+		}
+	}
+
+	public function onAfterGetSettingsForEntity($aArgs, &$mResult)
+	{
+		if (isset($aArgs['EntityType'], $aArgs['EntityId']) && 	$aArgs['EntityType'] === 'Tenant')
+		{
+			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($aArgs['EntityId']);
+			if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
+			{
+				$mResult['AllowEditUserSpaceLimitMb'] = $oTenant->{self::GetName() . '::IsBusiness'};
 			}
 		}
 	}
