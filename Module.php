@@ -26,7 +26,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('CoreUserGroups::DeleteGroups::after', array($this, 'onAfterRemoveDeleteGroups'));
 		$this->subscribeEvent('CoreUserGroups::RemoveUsersFromGroup::after', array($this, 'onAfterRemoveUsersFromGroup'));
 		$this->subscribeEvent('CoreUserGroups::AddToGroup::after', array($this, 'onAfterAddToGroup'));
-		$this->subscribeEvent('CoreUserGroups::SaveGroupsOfUser::after', array($this, 'onAfterSaveGroupsOfUser'));
+		$this->subscribeEvent('CoreUserGroups::UpdateUserGroup::after', array($this, 'onAfterSaveGroupsOfUser'));
 		$this->subscribeEvent('CoreUserGroups::GetGroups::before', array($this, 'onBeforeGetGroups'));
 		$this->subscribeEvent('CoreUserGroups::CreateGroup::before', array($this, 'onBeforeCreateGroup'));
 		
@@ -69,17 +69,20 @@ class Module extends \Aurora\System\Module\AbstractModule
 	
 	private function getGroupName($iUserId)
 	{
-		$oCoreUserGroupsDecorator = \Aurora\Modules\CoreUserGroups\Module::Decorator();
-		$aUserGroups = ($iUserId !== 0) ? $oCoreUserGroupsDecorator->GetGroupNamesOfUser($iUserId) : [];
 		$sGroupName = 'Free';
-		if (in_array('Pro', $aUserGroups))
+		
+		$oCoreUserGroupsDecorator = \Aurora\Modules\CoreUserGroups\Module::Decorator();
+		$oCoreDecorator = \Aurora\Modules\Core\Module::Decorator();
+		$oUser = $oCoreDecorator ? $oCoreDecorator->GetUser($iUserId) : null;
+		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
-			$sGroupName = 'Pro';
+			$oGroup = $oCoreUserGroupsDecorator->GetGroup($oUser->{'CoreUserGroups::GroupId'});
+			if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group)
+			{
+				$sGroupName = $oGroup->Name;
+			}
 		}
-		else if (in_array('Standard', $aUserGroups))
-		{
-			$sGroupName = 'Standard';
-		}
+		
 		return $sGroupName;
 	}
 	
