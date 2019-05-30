@@ -139,7 +139,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
 			{
 				// DB operations are not allowed for super admin here (DB might not be configured yet)
+				$bPrevState = \Aurora\System\Api::skipCheckUserRole(true);
 				$this->setUserCapabilities($oUser);
+				\Aurora\System\Api::skipCheckUserRole($bPrevState);
 			}
 		}
 	}
