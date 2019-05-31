@@ -533,5 +533,17 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$mResult['AllowEditUserSpaceLimitMb'] = $oTenant->{self::GetName() . '::IsBusiness'};
 			}
 		}
+		if (isset($aArgs['EntityType'], $aArgs['EntityId']) && 	$aArgs['EntityType'] === 'User')
+		{
+			$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUser($aArgs['EntityId']);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+			{
+				$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($oUser->IdTenant);
+				if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
+				{
+					$mResult['AllowEditUserSpaceLimitMb'] = $oTenant->{self::GetName() . '::IsBusiness'};
+				}
+			}
+		}
 	}
 }
