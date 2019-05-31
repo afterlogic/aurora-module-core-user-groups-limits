@@ -38,8 +38,8 @@
 		}],
 		"array"
 	],
-	"MailSignature": [
-		"Sent with Afterlogic WebMail",
-		"string"
+	"GroupwareModules": [
+		["CorporateCalendar", "CorporateFiles", "SharedContacts", "SharedFiles", "TeamContacts", "OutlookSyncWebclient"],
+		"array"
 	]
 }

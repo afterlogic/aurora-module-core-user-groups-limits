@@ -467,7 +467,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					if (is_int($iMailStorageQuotaMb))
 					{
 						$oTenant->{'Mail::TenantSpaceLimitMb'} = $iMailStorageQuotaMb;
-						$aAttributesToSave[] = 'Mail::TenantSpaceLimitMb';
+						$aAttributesForeSave[] = 'Mail::TenantSpaceLimitMb';
 					}
 
 					if ($oTenant->{self::GetName() . '::IsBusiness'})
@@ -481,6 +481,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 							$aAttributesForeSave[] = 'Files::UserSpaceLimitMb';
 							$aAttributesForeSave[] = 'Files::TenantSpaceLimitMb';
 						}
+					}
+					else
+					{
+						$oTenant->{'Mail::AllowChangeUserSpaceLimit'} = false;
+						$aAttributesForeSave[] = 'Mail::AllowChangeUserSpaceLimit';
 					}
 
 					$oTenant->saveAttributes($aAttributesForeSave);
