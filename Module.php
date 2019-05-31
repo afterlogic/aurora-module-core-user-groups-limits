@@ -39,23 +39,37 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('Files::GetSettingsForEntity::after', array($this, 'onAfterGetSettingsForEntity'));
 		
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User && $oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)
+		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
-			$this->aAdditionalEntityFieldsToEdit = [
-				[
+			if ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)
+			{
+				$this->aAdditionalEntityFieldsToEdit[] = [
 					'DisplayName' => $this->i18N('LABEL_ITS_BUSINESS_TENANT'),
 					'Entity' => 'Tenant',
 					'FieldName' => self::GetName() . '::IsBusiness',
 					'FieldType' => 'bool',
 					'Hint' => $this->i18N('HINT_ITS_BUSINESS_TENANT_HTML'),
 					'EnableOnCreate' => true,
-					'EnableOnEdit' => false,
-				],
-			];
+					'EnableOnEdit' => false
+				];
+			}
+			if ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin || $oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin)
+			{
+				$this->aAdditionalEntityFieldsToEdit[] = [
+					'DisplayName' => $this->i18N('LABEL_ENABLE_GROUPWARE'),
+					'Entity' => 'Tenant',
+					'FieldName' => self::GetName() . '::EnableGroupware',
+					'FieldType' => 'bool',
+					'Hint' => '',
+					'EnableOnCreate' => $oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin,
+					'EnableOnEdit' => $oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin
+				];
+			}
 		}
 
 		$this->subscribeEvent('Core::CreateUser::before', array($this, 'onBeforeCreateUser'));
 		$this->subscribeEvent('AdminPanelWebclient::CreateTenant::after', array($this, 'onAfterCreateTenant'));
+		$this->subscribeEvent('AdminPanelWebclient::UpdateEntity::after', array($this, 'onAfterUpdateEntity'));
 		$this->subscribeEvent('Core::Tenant::ToResponseArray', array($this, 'onTenantToResponseArray'));
 		$this->subscribeEvent('Core::CreateUser::after', array($this, 'onAfterCreateUser'));
 		
@@ -274,7 +288,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
-			$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($oUser->IdTenant);
+			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($oUser->IdTenant);
 			if ($oTenant && !$oTenant->{self::GetName() . '::IsBusiness'})
 			{
 				$oMailDecorator = \Aurora\Modules\Mail\Module::Decorator();
@@ -292,6 +306,54 @@ class Module extends \Aurora\System\Module\AbstractModule
 				}
 			}
 		}
+	}
+
+	public function GetGroupwareState($TenantId)
+	{
+		$bState = false;
+		$oAuthenticatedUser = \Aurora\Api::getAuthenticatedUser();
+		if ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin || ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin && $oAuthenticatedUser->IdTenant === $TenantId))
+		{
+			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($TenantId);
+			if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
+			{
+				$aDisabledModules = $oTenant->getDisabledModules();
+				if (count($aDisabledModules) === 0)
+				{
+					$bState = true;
+				}
+			}
+		}
+
+		return $bState;
+	}
+
+	public function UpdateGroupwareState($TenantId, $EnableGroupware = false)
+	{
+		$bResult = false;
+		$oAuthenticatedUser = \Aurora\Api::getAuthenticatedUser();
+		if ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin || ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin && $oAuthenticatedUser->IdTenant === $TenantId))
+		{
+			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($TenantId);
+			if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
+			{
+				if ($EnableGroupware)
+				{
+					$oTenant->clearDisabledModules();
+				}
+				else
+				{
+					$aGroupwareModules = $this->getConfig('GroupwareModules');
+					if (is_array($aGroupwareModules) && count($aGroupwareModules) > 0)
+					{
+						$oTenant->disableModules($aGroupwareModules);
+						$bResult = true;
+					}
+				}
+			}
+		}
+
+		return $bResult;
 	}
 
 	public function onBeforeRunEntry(&$aArgs, &$mResult)
@@ -328,6 +390,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant && is_array($mResult))
 		{
 			$mResult[self::GetName() . '::IsBusiness'] = $oTenant->{self::GetName() . '::IsBusiness'};
+			$mResult[self::GetName() . '::EnableGroupware'] = $this->GetGroupwareState($oTenant->EntityId);
 		}
 	}
 	
@@ -393,40 +456,67 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($iTenantId);
 			if ($oTenant && isset($aArgs[self::GetName() . '::IsBusiness']) && is_bool($aArgs[self::GetName() . '::IsBusiness']))
 			{
-				$aAttributesToSave = [];
-
-				$oTenant->{self::GetName() . '::IsBusiness'} = $aArgs[self::GetName() . '::IsBusiness'];
-				$aAttributesToSave[] = self::GetName() . '::IsBusiness';
-
-				if ($oTenant->{self::GetName() . '::IsBusiness'})
+				if (isset($aArgs[self::GetName() . '::IsBusiness']) && is_bool($aArgs[self::GetName() . '::IsBusiness']))
 				{
+					$aAttributesForeSave = [];
+
+					$oTenant->{self::GetName() . '::IsBusiness'} = $aArgs[self::GetName() . '::IsBusiness'];
+					$aAttributesForeSave[] = self::GetName() . '::IsBusiness';
+					$oTenant->{'Mail::AllowGlobalQuota'} = $oTenant->{self::GetName() . '::IsBusiness'};
 					$iMailStorageQuotaMb = $this->getBusinessTenantLimits('MailStorageQuotaMb');
 					if (is_int($iMailStorageQuotaMb))
 					{
 						$oTenant->{'Mail::TenantSpaceLimitMb'} = $iMailStorageQuotaMb;
 						$aAttributesToSave[] = 'Mail::TenantSpaceLimitMb';
 					}
-					
-					$oFilesModule = \Aurora\Api::GetModule('Files');
-					if ($oFilesModule)
+
+					if ($oTenant->{self::GetName() . '::IsBusiness'})
 					{
-						$oTenant->{'Files::UserSpaceLimitMb'} = $oFilesModule->getConfig('UserSpaceLimitMb');
-						$oTenant->{'Files::TenantSpaceLimitMb'} = $oFilesModule->getConfig('TenantSpaceLimitMb');
-
-						$aAttributesToSave[] = 'Files::UserSpaceLimitMb';
-						$aAttributesToSave[] = 'Files::TenantSpaceLimitMb';
+						$oFilesModule = \Aurora\Api::GetModule('Files');
+						if ($oFilesModule)
+						{
+							$oTenant->{'Files::UserSpaceLimitMb'} = $oFilesModule->getConfig('UserSpaceLimitMb');
+							$oTenant->{'Files::TenantSpaceLimitMb'} = $oFilesModule->getConfig('TenantSpaceLimitMb');
+			
+							$aAttributesForeSave[] = 'Files::UserSpaceLimitMb';
+							$aAttributesForeSave[] = 'Files::TenantSpaceLimitMb';
+						}
 					}
-				}
-				else
-				{
-					$oTenant->{'Mail::AllowChangeUserSpaceLimit'} = false;
-					$aAttributesToSave[] = 'Mail::AllowChangeUserSpaceLimit';
+
+					$oTenant->saveAttributes($aAttributesForeSave);
 				}
 
-				$oTenant->saveAttributes($aAttributesToSave);
+				if (isset($aArgs[self::GetName() . '::EnableGroupware']) && is_bool($aArgs[self::GetName() . '::EnableGroupware']))
+				{
+					$this->UpdateGroupwareState($iTenantId, $aArgs[self::GetName() . '::EnableGroupware']);
+				}
 			}
 		}
 	}
+
+	public function onAfterUpdateEntity($aArgs, &$mResult)
+	{
+		if ($aArgs['Type'] === 'Tenant')
+		{
+			$oUser = \Aurora\Api::getAuthenticatedUser();
+			if ($oUser instanceof  \Aurora\Modules\Core\Classes\User && $oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)
+			{
+				$iTenantId = (int) $aArgs['Data']['Id'];
+				if (!empty($iTenantId))
+				{
+					$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($iTenantId);
+					if ($oTenant)
+					{
+						if (isset($aArgs['Data'][self::GetName() . '::EnableGroupware']) && is_bool($aArgs['Data'][self::GetName() . '::EnableGroupware']))
+						{
+							$this->UpdateGroupwareState($iTenantId, $aArgs['Data'][self::GetName() . '::EnableGroupware']);
+						}
+					}
+				}
+			}
+		}
+	}
+
 
 	public function onAfterGetSettingsForEntity($aArgs, &$mResult)
 	{
