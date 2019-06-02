@@ -291,12 +291,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($oUser->IdTenant);
 			if ($oTenant && !$oTenant->{self::GetName() . '::IsBusiness'})
 			{
-				$oMailDecorator = \Aurora\Modules\Mail\Module::Decorator();
-				$iMailQuotaMb = $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
-				if ($oMailDecorator && is_int($iMailQuotaMb))
-				{
-					$oMailDecorator->UpdateEntitySpaceLimits('User', $oUser->EntityId, $oUser->IdTenant, $iMailQuotaMb);
-				}
+				$iMailQuotaMb = (int) $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
+				\Aurora\Modules\Mail\Module::Decorator()->UpdateEntitySpaceLimits('User', $oUser->EntityId, $oUser->IdTenant, null, $iMailQuotaMb);
 
 				$oFilesDecorator = \Aurora\Modules\Files\Module::Decorator();
 				$iFilesQuotaMb = $this->getGroupSetting($oUser->EntityId, 'FilesQuotaMb');
