@@ -454,17 +454,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 			{
 				if (isset($aArgs[self::GetName() . '::IsBusiness']) && is_bool($aArgs[self::GetName() . '::IsBusiness']))
 				{
-					$aAttributesForeSave = [];
+					$aAttributesToSave = [];
 
 					$oTenant->{self::GetName() . '::IsBusiness'} = $aArgs[self::GetName() . '::IsBusiness'];
-					$aAttributesForeSave[] = self::GetName() . '::IsBusiness';
-					$oTenant->{'Mail::AllowGlobalQuota'} = $oTenant->{self::GetName() . '::IsBusiness'};
-					$iMailStorageQuotaMb = $this->getBusinessTenantLimits('MailStorageQuotaMb');
-					if (is_int($iMailStorageQuotaMb))
-					{
-						$oTenant->{'Mail::TenantSpaceLimitMb'} = $iMailStorageQuotaMb;
-						$aAttributesForeSave[] = 'Mail::TenantSpaceLimitMb';
-					}
+					$aAttributesToSave[] = self::GetName() . '::IsBusiness';
 
 					if ($oTenant->{self::GetName() . '::IsBusiness'})
 					{
@@ -474,17 +467,24 @@ class Module extends \Aurora\System\Module\AbstractModule
 							$oTenant->{'Files::UserSpaceLimitMb'} = $oFilesModule->getConfig('UserSpaceLimitMb');
 							$oTenant->{'Files::TenantSpaceLimitMb'} = $oFilesModule->getConfig('TenantSpaceLimitMb');
 			
-							$aAttributesForeSave[] = 'Files::UserSpaceLimitMb';
-							$aAttributesForeSave[] = 'Files::TenantSpaceLimitMb';
+							$aAttributesToSave[] = 'Files::UserSpaceLimitMb';
+							$aAttributesToSave[] = 'Files::TenantSpaceLimitMb';
+						}
+						
+						$iMailStorageQuotaMb = $this->getBusinessTenantLimits('MailStorageQuotaMb');
+						if (is_int($iMailStorageQuotaMb))
+						{
+							$oTenant->{'Mail::TenantSpaceLimitMb'} = $iMailStorageQuotaMb;
+							$aAttributesToSave[] = 'Mail::TenantSpaceLimitMb';
 						}
 					}
 					else
 					{
 						$oTenant->{'Mail::AllowChangeUserSpaceLimit'} = false;
-						$aAttributesForeSave[] = 'Mail::AllowChangeUserSpaceLimit';
+						$aAttributesToSave[] = 'Mail::AllowChangeUserSpaceLimit';
 					}
 
-					$oTenant->saveAttributes($aAttributesForeSave);
+					$oTenant->saveAttributes($aAttributesToSave);
 				}
 
 				if (isset($aArgs[self::GetName() . '::EnableGroupware']) && is_bool($aArgs[self::GetName() . '::EnableGroupware']))
