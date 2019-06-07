@@ -21,8 +21,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function init()
 	{
 		$this->subscribeEvent('Mail::SendMessage::before', array($this, 'onBeforeSendMessage'));
+		$this->subscribeEvent('Mail::CreateAccount::after', array($this, 'onAfterCreateAccount'));
 		
-		$this->subscribeEvent('Core::Login::after', array($this, 'onAfterLogin'));
 		$this->subscribeEvent('CoreUserGroups::DeleteGroups::after', array($this, 'onAfterRemoveDeleteGroups'));
 		$this->subscribeEvent('CoreUserGroups::RemoveUsersFromGroup::after', array($this, 'onAfterRemoveUsersFromGroup'));
 		$this->subscribeEvent('CoreUserGroups::AddToGroup::after', array($this, 'onAfterAddToGroup'));
@@ -137,26 +137,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if (is_int($iFilesQuotaMb))
 		{
 			$mResult = $iFilesQuotaMb;
-		}
-	}
-	
-	/**
-	 * Applies capabilities for just authenticated user.
-	 * @param array $aArgs
-	 * @param mixed $mResult
-	 */
-	public function onAfterLogin(&$aArgs, &$mResult)
-	{
-		if ($mResult !== false)
-		{
-			$oUser = \Aurora\System\Api::getAuthenticatedUser();
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
-			{
-				// DB operations are not allowed for super admin here (DB might not be configured yet)
-				$bPrevState = \Aurora\System\Api::skipCheckUserRole(true);
-				$this->setUserCapabilities($oUser);
-				\Aurora\System\Api::skipCheckUserRole($bPrevState);
-			}
 		}
 	}
 	
@@ -289,7 +269,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
 			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($oUser->IdTenant);
-			if ($oTenant && !$oTenant->{self::GetName() . '::IsBusiness'})
+			if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant && !$oTenant->{self::GetName() . '::IsBusiness'})
 			{
 				$iMailQuotaMb = (int) $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
 				\Aurora\Modules\Mail\Module::Decorator()->UpdateEntitySpaceLimits('User', $oUser->EntityId, $oUser->IdTenant, null, $iMailQuotaMb);
@@ -418,7 +398,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 	}
 	
 	/**
-	 * 
 	 * @param array $aArgs
 	 * @param mixed $mResult
 	 */
@@ -432,18 +411,54 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($oUser->IdTenant);
 				if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
 				{
-					$UserSpaceLimitMb = $oTenant->{'Files::UserSpaceLimitMb'};
+					if ($oTenant->{self::GetName() . '::IsBusiness'})
+					{
+						$UserSpaceLimitMb = $oTenant->{'Files::UserSpaceLimitMb'};
 
-					\Aurora\Modules\Files\Module::Decorator()->CheckAllocatedSpaceLimitForUsersInTenant($oTenant, $UserSpaceLimitMb);
+						\Aurora\Modules\Files\Module::Decorator()->CheckAllocatedSpaceLimitForUsersInTenant($oTenant, $UserSpaceLimitMb);
 
-					$oUser->{'Files::UserSpaceLimitMb'} = $UserSpaceLimitMb;
-					$oUser->saveAttribute('Files::UserSpaceLimitMb');
+						$oUser->{'Files::UserSpaceLimitMb'} = $UserSpaceLimitMb;
+						$oUser->saveAttribute('Files::UserSpaceLimitMb');
+					}
+					else
+					{
+						$oFilesDecorator = \Aurora\Modules\Files\Module::Decorator();
+						$iFilesQuotaMb = $this->getGroupSetting($oUser->EntityId, 'FilesQuotaMb');
+						if ($oFilesDecorator && is_int($iFilesQuotaMb))
+						{
+							$oFilesDecorator->UpdateUserSpaceLimit($oUser->EntityId, $iFilesQuotaMb);
+						}
+					}
 				}
 			}
 		}
 	}
 
-
+	/**
+	 * @param array $aArgs
+	 * @param mixed $mResult
+	 */
+	public function onAfterCreateAccount($aArgs, &$mResult)
+	{
+		if ($mResult instanceof \Aurora\Modules\Mail\Classes\Account)
+		{
+			$oAccount = $mResult;
+			$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUser($oAccount->IdUser);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+			{
+				$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantById($oUser->IdTenant);
+				if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant
+						&& $oUser->PublicId === $oAccount->Email)
+				{
+					$iMailQuotaMb = $oTenant->{self::GetName() . '::IsBusiness'}
+						? $oTenant->{'Mail::UserSpaceLimitMb'}
+						: $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
+					\Aurora\Modules\Mail\Module::Decorator()->UpdateEntitySpaceLimits('User', $oUser->EntityId, $oUser->IdTenant, null, $iMailQuotaMb);
+				}
+			}
+		}
+	}
+	
 	public function onAfterCreateTenant($aArgs, &$mResult)
 	{
 		$iTenantId = $mResult;
