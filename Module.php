@@ -477,10 +477,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 					if ($oTenant->{self::GetName() . '::IsBusiness'})
 					{
 						$oFilesModule = \Aurora\Api::GetModule('Files');
+						$iFilesStorageQuotaMb = $this->getBusinessTenantLimits('FilesStorageQuotaMb');
 						if ($oFilesModule)
 						{
 							$oTenant->{'Files::UserSpaceLimitMb'} = $oFilesModule->getConfig('UserSpaceLimitMb');
-							$oTenant->{'Files::TenantSpaceLimitMb'} = $oFilesModule->getConfig('TenantSpaceLimitMb');
+							$oTenant->{'Files::TenantSpaceLimitMb'} = $iFilesStorageQuotaMb;
 			
 							$aAttributesToSave[] = 'Files::UserSpaceLimitMb';
 							$aAttributesToSave[] = 'Files::TenantSpaceLimitMb';
