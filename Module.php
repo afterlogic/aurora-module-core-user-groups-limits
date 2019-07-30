@@ -21,6 +21,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function init()
 	{
 		$this->subscribeEvent('Mail::SendMessage::before', array($this, 'onBeforeSendMessage'));
+		$this->subscribeEvent('Mail::SendMessage::after', array($this, 'onAfterSendMessage'));
 		$this->subscribeEvent('Mail::CreateAccount::after', array($this, 'onAfterCreateAccount'));
 		
 		$this->subscribeEvent('CoreUserGroups::DeleteGroups::after', array($this, 'onAfterRemoveDeleteGroups'));
@@ -80,7 +81,15 @@ class Module extends \Aurora\System\Module\AbstractModule
 			[
 				'IsBusiness' => array('bool', false),
 			]
-		);		
+		);
+		
+		\Aurora\Modules\Core\Classes\User::extend(
+			self::GetName(),
+			[
+				'EmailSentCount' => array('int', 0),
+				'EmailSentDate' => array('datetime', date('Y-m-d'), true),
+			]
+		);
 	}
 	
 	private function getGroupName($iUserId)
@@ -118,26 +127,86 @@ class Module extends \Aurora\System\Module\AbstractModule
 		return $mSettingValue;
 	}
 	
+	protected function isTodayEmailSentDate($oUser)
+	{
+		return $oUser instanceof \Aurora\Modules\Core\Classes\User
+				&& ($oUser->{self::GetName() . '::EmailSentDate'} === date('Y-m-d')
+				|| $oUser->{self::GetName() . '::EmailSentDate'} === date('Y-m-d') . ' 00:00:00');
+	}
+	
+	protected function isUserNotFromBusinessTenant($oUser)
+	{
+		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+		{
+			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($oUser->IdTenant);
+			if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant && !$oTenant->{self::GetName() . '::IsBusiness'})
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
-	 * @param array $aArguments
+	 * @param array $aArgs
 	 * @param mixed $mResult
 	 */
-	public function onBeforeSendMessage(&$aArguments, &$mResult)
+	public function onBeforeSendMessage(&$aArgs, &$mResult)
 	{
-		$iAuthenticatedUserId = \Aurora\System\Api::getAuthenticatedUserId();
-		$sMailSignature = $this->getGroupSetting($iAuthenticatedUserId, 'MailSignature');
-		if (is_string($sMailSignature) && $sMailSignature !== '')
+		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
+		
+		if ($this->isUserNotFromBusinessTenant($oAuthenticatedUser))
 		{
-			$aArguments['Text'] .= ($aArguments['IsHtml'] ? '<br />' : "\r\n") . $sMailSignature;
+			if ($this->isTodayEmailSentDate($oAuthenticatedUser))
+			{
+				$iEmailSendLimitPerDay = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'EmailSendLimitPerDay');
+
+				if ($oAuthenticatedUser->{self::GetName() . '::EmailSentCount'} >= $iEmailSendLimitPerDay)
+				{
+					throw new \Exception($this->i18N('ERROR_USER_SENT_MESSAGES_LIMIT', ['COUNT' => $iEmailSendLimitPerDay]));
+				}
+			}
+
+			$sMailSignature = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'MailSignature');
+			if (is_string($sMailSignature) && $sMailSignature !== '')
+			{
+				$aArgs['Text'] .= ($aArgs['IsHtml'] ? '<br />' : "\r\n") . $sMailSignature;
+			}
+		}
+	}
+	
+	/**
+	 * @param array $aArgs
+	 * @param mixed $mResult
+	 */
+	public function onAfterSendMessage(&$aArgs, &$mResult)
+	{
+		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
+		if ($mResult === true && $this->isUserNotFromBusinessTenant($oAuthenticatedUser))
+		{
+			if ($this->isTodayEmailSentDate($oAuthenticatedUser))
+			{
+				$oAuthenticatedUser->{self::GetName() . '::EmailSentCount'} += 1;
+			}
+			else
+			{
+				$oAuthenticatedUser->{self::GetName() . '::EmailSentCount'} = 0;
+			}
+			$oAuthenticatedUser->{self::GetName() . '::EmailSentDate'} = date('Y-m-d');
+			$oAuthenticatedUser->saveAttributes([self::GetName() . '::EmailSentCount', self::GetName() . '::EmailSentDate']);
 		}
 	}
 	
 	public function onGetUserSpaceLimitMb(&$aArgs, &$mResult)
 	{
-		$iFilesQuotaMb = $this->getGroupSetting($aArgs['UserId'], 'FilesQuotaMb');
-		if (is_int($iFilesQuotaMb))
+		$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aArgs['UserId']);
+		if ($mResult === true && $this->isUserNotFromBusinessTenant($oUser))
 		{
-			$mResult = $iFilesQuotaMb;
+			$iFilesQuotaMb = $this->getGroupSetting($aArgs['UserId'], 'FilesQuotaMb');
+			if (is_int($iFilesQuotaMb))
+			{
+				$mResult = $iFilesQuotaMb;
+			}
 		}
 	}
 	
@@ -267,20 +336,16 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	protected function setUserCapabilities($oUser)
 	{
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+		if ($this->isUserNotFromBusinessTenant($oUser))
 		{
-			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($oUser->IdTenant);
-			if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant && !$oTenant->{self::GetName() . '::IsBusiness'})
-			{
-				$iMailQuotaMb = (int) $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
-				\Aurora\Modules\Mail\Module::Decorator()->UpdateEntitySpaceLimits('User', $oUser->EntityId, $oUser->IdTenant, null, $iMailQuotaMb);
+			$iMailQuotaMb = (int) $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
+			\Aurora\Modules\Mail\Module::Decorator()->UpdateEntitySpaceLimits('User', $oUser->EntityId, $oUser->IdTenant, null, $iMailQuotaMb);
 
-				$oFilesDecorator = \Aurora\Modules\Files\Module::Decorator();
-				$iFilesQuotaMb = $this->getGroupSetting($oUser->EntityId, 'FilesQuotaMb');
-				if ($oFilesDecorator && is_int($iFilesQuotaMb))
-				{
-					$oFilesDecorator->UpdateUserSpaceLimit($oUser->EntityId, $iFilesQuotaMb);
-				}
+			$oFilesDecorator = \Aurora\Modules\Files\Module::Decorator();
+			$iFilesQuotaMb = $this->getGroupSetting($oUser->EntityId, 'FilesQuotaMb');
+			if ($oFilesDecorator && is_int($iFilesQuotaMb))
+			{
+				$oFilesDecorator->UpdateUserSpaceLimit($oUser->EntityId, $iFilesQuotaMb);
 			}
 		}
 	}
@@ -335,11 +400,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function onBeforeRunEntry(&$aArgs, &$mResult)
 	{
-		$iUserId = \Aurora\Api::getAuthenticatedUserId();
-		if ($iUserId > 0 && isset($aArgs['EntryName']) && strtolower($aArgs['EntryName']) === 'api')
+		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
+		if ($this->isUserNotFromBusinessTenant($oAuthenticatedUser) && isset($aArgs['EntryName']) && strtolower($aArgs['EntryName']) === 'api')
 		{
 			$sXClientHeader = \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
-			$bAllowMobileApps = $this->getGroupSetting($iUserId, 'AllowMobileApps');
+			$bAllowMobileApps = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'AllowMobileApps');
 			if ($sXClientHeader && strtolower($sXClientHeader) !== 'webclient' && (!is_bool($bAllowMobileApps) || !$bAllowMobileApps))
 			{
 				$mResult = \Aurora\System\Managers\Response::GetJsonFromObject(
