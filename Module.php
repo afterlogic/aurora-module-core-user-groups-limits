@@ -190,7 +190,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 			else
 			{
-				$oAuthenticatedUser->{self::GetName() . '::EmailSentCount'} = 0;
+				$oAuthenticatedUser->{self::GetName() . '::EmailSentCount'} = 1;
 			}
 			$oAuthenticatedUser->{self::GetName() . '::EmailSentDate'} = date('Y-m-d');
 			$oAuthenticatedUser->saveAttributes([self::GetName() . '::EmailSentCount', self::GetName() . '::EmailSentDate']);
