@@ -9,7 +9,7 @@
 				"GroupName": "Free",
 				"EmailSendLimitPerDay": 150,
 				"MailSignature": "Sent with PrivateMail",
-				"MailQuotaMb": 100,
+				"MailQuotaMb": 500,
 				"FilesQuotaMb": 500,
 				"AllowMobileApps": false
 			},
@@ -17,7 +17,7 @@
 				"GroupName": "Standard",
 				"EmailSendLimitPerDay": 2500,
 				"MailSignature": "",
-				"MailQuotaMb": 5120,
+				"MailQuotaMb": 10240,
 				"FilesQuotaMb": 10240,
 				"AllowMobileApps": true
 			},
