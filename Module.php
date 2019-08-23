@@ -401,7 +401,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function onBeforeRunEntry(&$aArgs, &$mResult)
 	{
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($this->isUserNotFromBusinessTenant($oAuthenticatedUser) && isset($aArgs['EntryName']) && strtolower($aArgs['EntryName']) === 'api')
+		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User
+				&& $oAuthenticatedUser->isNormalOrTenant()
+				&& $this->isUserNotFromBusinessTenant($oAuthenticatedUser) && isset($aArgs['EntryName']) && strtolower($aArgs['EntryName']) === 'api')
 		{
 			$sXClientHeader = \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
 			$bAllowMobileApps = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'AllowMobileApps');
