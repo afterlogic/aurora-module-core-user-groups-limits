@@ -42,7 +42,7 @@
 		"array"
 	],
 	"GroupwareModules": [
-		["CorporateCalendar", "CorporateFiles", "SharedContacts", "SharedFiles", "TeamContacts", "OutlookSyncWebclient"],
+		["CorporateCalendar", "S3CorporateFilestorage", "SharedContacts", "SharedFiles", "TeamContacts", "OutlookSyncWebclient"],
 		"array"
 	]
 }
