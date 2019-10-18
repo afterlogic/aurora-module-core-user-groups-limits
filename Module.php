@@ -405,9 +405,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 				&& $oAuthenticatedUser->isNormalOrTenant()
 				&& $this->isUserNotFromBusinessTenant($oAuthenticatedUser) && isset($aArgs['EntryName']) && strtolower($aArgs['EntryName']) === 'api')
 		{
-			$sXClientHeader = \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
+			$sXClientHeader = (string) \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
 			$bAllowMobileApps = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'AllowMobileApps');
-			if ($sXClientHeader && strtolower($sXClientHeader) !== 'webclient' && (!is_bool($bAllowMobileApps) || !$bAllowMobileApps))
+			if (strtolower($sXClientHeader) !== 'webclient' && (!is_bool($bAllowMobileApps) || !$bAllowMobileApps))
 			{
 				$mResult = \Aurora\System\Managers\Response::GetJsonFromObject(
 					'Json', 
