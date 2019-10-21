@@ -37,6 +37,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('PersonalFiles::GetUserSpaceLimitMb', array($this, 'onGetUserSpaceLimitMb'));
 
 		$this->subscribeEvent('System::RunEntry::before', array($this, 'onBeforeRunEntry'));
+		$this->subscribeEvent('Core::Login::after', array($this, 'onAfterLogin'));
 		$this->subscribeEvent('Files::GetSettingsForEntity::after', array($this, 'onAfterGetSettingsForEntity'));
 		
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
@@ -415,8 +416,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 						'RunEntry', 
 						new \Aurora\System\Exceptions\ApiException(
 							\Aurora\System\Notifications::AccessDenied,
-							null, 
-							'', 
+							null,
+							$this->i18N('ERROR_USER_MOBILE_ACCESS_LIMIT'),
 							[], 
 							$this
 						)	
@@ -424,6 +425,35 @@ class Module extends \Aurora\System\Module\AbstractModule
 				);
 
 				return true;
+			}
+		}
+	}
+	
+	public function onAfterLogin(&$aArgs, &$mResult)
+	{	
+		if($mResult && isset($mResult['AuthToken'])) {
+			$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
+			if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User
+					&& $oAuthenticatedUser->isNormalOrTenant()
+					&& $this->isUserNotFromBusinessTenant($oAuthenticatedUser)
+					// && isset($aArgs['EntryName'])
+					// && strtolower($aArgs['EntryName']) === 'api'
+				)
+			{
+				$sXClientHeader = (string) \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
+				$bAllowMobileApps = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'AllowMobileApps');
+				if (strtolower($sXClientHeader) !== 'webclient' && (!is_bool($bAllowMobileApps) || !$bAllowMobileApps))
+				{
+					throw new \Aurora\System\Exceptions\ApiException(
+						\Aurora\System\Notifications::AccessDenied,
+						null,
+						$this->i18N('ERROR_USER_MOBILE_ACCESS_LIMIT'),
+						[], 
+						$this
+					);
+
+					return true;
+				}
 			}
 		}
 	}
