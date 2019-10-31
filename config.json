@@ -20,8 +20,8 @@
 				"MailQuotaMb": 500,
 				"FilesQuotaMb": 500,
 				"AllowMobileApps": false,
-				"BannerUrl": "aaaaaaaa",
-				"BannerLink": "bbbbbbbbbbbbb"
+				"BannerUrl": "static/styles/images/modules/CoreUserGroupsLimits/free-plan-upgrade.gif",
+				"BannerLink": "https://privatemail.com/members/supporttickets.php"
 			},
 			{
 				"GroupName": "Standard",
@@ -30,8 +30,8 @@
 				"MailQuotaMb": 10240,
 				"FilesQuotaMb": 10240,
 				"AllowMobileApps": true,
-				"BannerUrl": "ccccccc",
-				"BannerLink": "ddddddddddd"
+				"BannerUrl": "",
+				"BannerLink": ""
 			},
 			{
 				"GroupName": "Pro",
@@ -40,8 +40,8 @@
 				"MailQuotaMb": 20480,
 				"FilesQuotaMb": 20480,
 				"AllowMobileApps": true,
-				"BannerUrl": "eeeeeeeeeee",
-				"BannerLink": "ffffffffff"
+				"BannerUrl": "",
+				"BannerLink": ""
 			}
 		],
 		"array"
