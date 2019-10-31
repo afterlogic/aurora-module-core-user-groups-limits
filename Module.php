@@ -645,7 +645,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 
-
 	public function onAfterGetSettingsForEntity($aArgs, &$mResult)
 	{
 		if (isset($aArgs['EntityType'], $aArgs['EntityId']) && 	$aArgs['EntityType'] === 'Tenant')
@@ -668,5 +667,25 @@ class Module extends \Aurora\System\Module\AbstractModule
 				}
 			}
 		}
+	}
+
+	public function GetSettings()
+	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
+		$aSettings = array(
+			'BannerUrl' => '',
+			'BannerLink' => '',
+		);
+
+		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
+
+		if ($this->isUserNotFromBusinessTenant($oAuthenticatedUser))
+		{
+			$aSettings['BannerUrl'] = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'BannerUrl');
+			$aSettings['BannerLink'] = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'BannerLink');
+		}
+
+		return $aSettings;
 	}
 }

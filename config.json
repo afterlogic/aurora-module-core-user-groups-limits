@@ -3,6 +3,14 @@
 		false,
 		"bool"
 	],
+    "IncludeInMobile": [
+		true,
+		"bool"
+	],
+    "IncludeInDesktop": [
+		true,
+		"bool"
+	],
 	"GroupsLimits": [
 		[
 			{
@@ -11,7 +19,9 @@
 				"MailSignature": "Sent with PrivateMail",
 				"MailQuotaMb": 500,
 				"FilesQuotaMb": 500,
-				"AllowMobileApps": false
+				"AllowMobileApps": false,
+				"BannerUrl": "aaaaaaaa",
+				"BannerLink": "bbbbbbbbbbbbb"
 			},
 			{
 				"GroupName": "Standard",
@@ -19,7 +29,9 @@
 				"MailSignature": "",
 				"MailQuotaMb": 10240,
 				"FilesQuotaMb": 10240,
-				"AllowMobileApps": true
+				"AllowMobileApps": true,
+				"BannerUrl": "ccccccc",
+				"BannerLink": "ddddddddddd"
 			},
 			{
 				"GroupName": "Pro",
@@ -27,7 +39,9 @@
 				"MailSignature": "",
 				"MailQuotaMb": 20480,
 				"FilesQuotaMb": 20480,
-				"AllowMobileApps": true
+				"AllowMobileApps": true,
+				"BannerUrl": "eeeeeeeeeee",
+				"BannerLink": "ffffffffff"
 			}
 		],
 		"array"

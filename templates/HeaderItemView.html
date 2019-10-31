@@ -1,0 +1,12 @@
+<!-- ko if: sLink !== '' -->
+<a href="#" target="_blank" class="item banner" data-bind="attr: {'href': sLink}">
+	<img data-bind="visible: sUrl !== '', attr: {'src': sUrl}" />
+	<span class="link" data-bind="visible: bShowTitle, i18n: {'key': '%MODULENAME%/UPRGADE_NOW'}"></span>
+</a>
+<!-- /ko -->
+<!-- ko if: sLink === '' -->
+<span class="item banner">
+	<img data-bind="visible: sUrl !== '', attr: {'src': sUrl}" />
+	<span class="link" data-bind="visible: bShowTitle, i18n: {'key': '%MODULENAME%/UPRGADE_NOW'}"></span>
+</span>
+<!-- /ko -->
