@@ -24,10 +24,12 @@ module.exports = function (oAppData) {
 						if (ko.isSubscribable(oParams.View.selectedPanel) && !bInitialized) {
 
 							var sHtml = '';
-								sHtml += Settings.BannerLink !== '' ? `<a href="${Settings.BannerLink}" target="_blank" class="item banner" style="max-width: 100%;">` : '<span class="item banner" style="max-width: 100%;">';
-								sHtml += Settings.BannerUrl !== '' ? `<img src="${Settings.BannerUrl}" />` : '';
+								sHtml += '<span class="banner" style="display: block; text-align: center;">';
+								sHtml += Settings.BannerLink !== '' ? `<a href="${Settings.BannerLink}" target="_blank">` : '';
+								sHtml += Settings.BannerUrlMobile !== '' ? `<img src="${Settings.BannerUrlMobile}" />` : '';
 								sHtml += Settings.ShowTitle !== '' ? `<span class="link" data-bind="i18n: {'key': '%MODULENAME%/UPRGADE_NOW'}"></span>` : '';
-								sHtml += Settings.BannerLink !== '' ? '</a>' : '</span>';
+								sHtml += Settings.BannerLink !== '' ? '</a>' : '';
+								sHtml += '</span>';
 
 							var oBannerEl = $(sHtml);
 							oParams.View.selectedPanel.subscribe(function (value) {
@@ -45,7 +47,7 @@ module.exports = function (oAppData) {
 				getHeaderItem: function () {
 					return {
 						item: require('modules/%ModuleName%/js/views/HeaderItemView.js'),
-						name: 'asdasd'
+						name: ''
 					};
 				}
 			};

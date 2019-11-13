@@ -20,7 +20,8 @@
 				"MailQuotaMb": 500,
 				"FilesQuotaMb": 500,
 				"AllowMobileApps": false,
-				"BannerUrl": "static/styles/images/modules/CoreUserGroupsLimits/free-plan-upgrade.gif",
+				"BannerUrlMobile": "static/styles/images/modules/CoreUserGroupsLimits/upgrade_button.png",
+				"BannerUrlDesktop": "static/styles/images/modules/CoreUserGroupsLimits/upgrade_button_large.png",
 				"BannerLink": "https://privatemail.com/members/supporttickets.php"
 			},
 			{
@@ -30,7 +31,8 @@
 				"MailQuotaMb": 10240,
 				"FilesQuotaMb": 10240,
 				"AllowMobileApps": true,
-				"BannerUrl": "",
+				"BannerUrlMobile": "",
+				"BannerUrlDesktop": "",
 				"BannerLink": ""
 			},
 			{
@@ -40,7 +42,8 @@
 				"MailQuotaMb": 20480,
 				"FilesQuotaMb": 20480,
 				"AllowMobileApps": true,
-				"BannerUrl": "",
+				"BannerUrlMobile": "",
+				"BannerUrlDesktop": "",
 				"BannerLink": ""
 			}
 		],

@@ -674,7 +674,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 		
 		$aSettings = array(
-			'BannerUrl' => '',
+			'BannerUrlMobile' => '',
+			'BannerUrlDesktop' => '',
 			'BannerLink' => '',
 		);
 
@@ -682,7 +683,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		if ($this->isUserNotFromBusinessTenant($oAuthenticatedUser))
 		{
-			$aSettings['BannerUrl'] = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'BannerUrl');
+			$aSettings['BannerUrlMobile'] = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'BannerUrlMobile');
+			$aSettings['BannerUrlDesktop'] = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'BannerUrlDesktop');
 			$aSettings['BannerLink'] = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'BannerLink');
 		}
 

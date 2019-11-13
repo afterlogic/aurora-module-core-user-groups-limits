@@ -9,7 +9,8 @@ var
 module.exports = {
 	ServerModuleName: '%ModuleName%',
 
-	BannerUrl: '',
+	BannerUrlMobile: '',
+	BannerUrlDesktop: '',
 	BannerLink: '',
 	ShowTitle: false,
 	
@@ -24,7 +25,8 @@ module.exports = {
 		
 		if (!_.isEmpty(oAppDataSection))
 		{
-			this.BannerUrl = Types.pString(oAppDataSection.BannerUrl, this.BannerUrl);
+			this.BannerUrlMobile = Types.pString(oAppDataSection.BannerUrlMobile, this.BannerUrlMobile);
+			this.BannerUrlDesktop = Types.pString(oAppDataSection.BannerUrlDesktop, this.BannerUrlDesktop);
 			this.BannerLink = Types.pString(oAppDataSection.BannerLink, this.BannerLink);
 		}
 	},
