@@ -10,7 +10,7 @@ var
 function CHeaderItemView()
 {
 	CAbstractHeaderItemView.call(this);
-console.log('sUrl', Settings);
+
 	this.sUrl = Settings.BannerUrlDesktop;
 	this.sLink = Settings.BannerLink;
 	this.bShowTitle = Settings.ShowTitle;
