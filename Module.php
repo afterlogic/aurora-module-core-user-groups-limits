@@ -37,7 +37,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('PersonalFiles::GetUserSpaceLimitMb', array($this, 'onGetUserSpaceLimitMb'));
 
 		$this->subscribeEvent('System::RunEntry::before', array($this, 'onBeforeRunEntry'));
-		$this->subscribeEvent('Core::Login::after', array($this, 'onAfterLogin'));
+		$this->subscribeEvent('Core::Login::after', array($this, 'onAfterLogin'), 10);
 		$this->subscribeEvent('Files::GetSettingsForEntity::after', array($this, 'onAfterGetSettingsForEntity'));
 		
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
