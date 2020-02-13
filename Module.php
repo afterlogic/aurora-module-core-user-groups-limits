@@ -32,6 +32,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('CoreUserGroups::CreateGroup::before', array($this, 'onBeforeCreateGroup'));
 		
 		$this->subscribeEvent('CpanelIntegrator::CreateAlias::before', array($this, 'onBeforeCreateAlias'));
+		$this->subscribeEvent('CpanelIntegrator::AddNewAlias::after', array($this, 'onAfterCreateAlias'));
 		$this->subscribeEvent('CpanelIntegrator::GetSettings::after', array($this, 'onAfterGetSettings'));
 		
 		$this->subscribeEvent('PersonalFiles::GetUserSpaceLimitMb', array($this, 'onGetUserSpaceLimitMb'));
@@ -89,6 +90,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 			[
 				'EmailSentCount' => array('int', 0),
 				'EmailSentDate' => array('datetime', date('Y-m-d'), true),
+				'TotalAliasCount' => ['int', 0], //count of active and deleted aliases
+				'LastAliasCreationDate' => ['datetime', date('Y-m-d H:i:s', 0), true] //time of last created alias (still active or already deleted) for the account
 			]
 		);
 	}
@@ -274,6 +277,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$mResult['AllowAliases'] = false;
 			}
 		}
+		else if ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::NormalUser)
+		{
+			$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($oAuthenticatedUser->IdTenant);
+			if ($oTenant && $oTenant->{self::GetName() . '::IsBusiness'})
+			{
+				$mResult['AllowAliases'] = false;
+			}
+		}
 	}
 	
 	public function onBeforeCreateAlias($aArgs, &$mResult)
@@ -281,15 +292,55 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$iTenantId = $aArgs['TenantId'];
 		$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($iTenantId);
 		if ($oTenant && $oTenant->{self::GetName() . '::IsBusiness'})
-		{
+		{//Business tenant
 			$iAliasesCount = $this->getBusinessTenantLimits('AliasesCount');
-			if (is_array($aArgs['Forwarders']) && count($aArgs['Forwarders']) >= $iAliasesCount)
+			if (is_array($aArgs['DomainAliases']) && count($aArgs['DomainAliases']) >= $iAliasesCount)
 			{
 				throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_ALIASES_LIMIT'));
 			}
 		}
+		else
+		{//not Business tenant
+			$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aArgs['UserId']);
+			$iMaxAllowedActiveAliasCount = $this->getGroupSetting($oUser->EntityId, 'MaxAllowedActiveAliasCount');
+			$iAliasCreationIntervalDays = $this->getGroupSetting($oUser->EntityId, 'AliasCreationIntervalDays'); //how many days must pass since the user is allowed to create an alias again (once the user hit MaxAllowedActiveAliasCount limit)
+			$bLimitedExceeded = true;
+			$iActualAliasesCount = is_array($aArgs['UserAliases']) ? count($aArgs['UserAliases']) : 0;
+			$dLastAliasCreationDatel = new \DateTime($oUser->{self::GetName() . '::LastAliasCreationDate'}, new \DateTimeZone('UTC'));
+			$dCurrentDate = new \DateTime('now', new \DateTimeZone('UTC'));
+			if ($iActualAliasesCount < $iMaxAllowedActiveAliasCount)
+			{
+				if ($oUser->{self::GetName() . '::TotalAliasCount'} < $iMaxAllowedActiveAliasCount)
+				{
+					$bLimitedExceeded = false;
+				}
+				else if ($dLastAliasCreationDatel->modify("+{$iAliasCreationIntervalDays} day") < $dCurrentDate)
+				{
+					$bLimitedExceeded = false;
+				}
+			}
+			if ($bLimitedExceeded)
+			{
+				throw new \Exception($this->i18N('ERROR_USER_ALIASES_LIMIT', ['COUNT' => $iMaxAllowedActiveAliasCount]));
+			}
+		}
 	}
-	
+
+	public function onAfterCreateAlias($aArgs, &$mResult)
+	{
+		$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aArgs['UserId']);
+		if ($this->isUserNotFromBusinessTenant($oUser))
+		{
+			$oCpanelIntegratorDecorator = \Aurora\System\Api::GetModuleDecorator('CpanelIntegrator');
+			$aGetAliasesResult = $oCpanelIntegratorDecorator ? $oCpanelIntegratorDecorator->GetAliases($oUser->EntityId) : [];
+			$iActualAliasesCount = isset($aGetAliasesResult['Aliases']) ? count($aGetAliasesResult['Aliases']) : 0;
+			$oUser->{self::GetName() . '::TotalAliasCount'} = $iActualAliasesCount;
+			$dCurrentDate = new \DateTime('now', new \DateTimeZone('UTC'));
+			$oUser->{self::GetName() . '::LastAliasCreationDate'} = $dCurrentDate->format('Y-m-d H:i:s');
+			\Aurora\System\Managers\Eav::getInstance()->updateEntity($oUser);
+		}
+	}
+
 	public function onBeforeGetGroups($aArgs, &$mResult)
 	{
 		$iTenantId = $aArgs['TenantId'];

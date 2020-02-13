@@ -22,7 +22,9 @@
 				"AllowMobileApps": false,
 				"BannerUrlMobile": "static/styles/images/modules/CoreUserGroupsLimits/upgrade_button.png",
 				"BannerUrlDesktop": "static/styles/images/modules/CoreUserGroupsLimits/upgrade_button_large.png",
-				"BannerLink": "https://privatemail.com/members/supporttickets.php"
+				"BannerLink": "https://privatemail.com/members/supporttickets.php",
+				"MaxAllowedActiveAliasCount": 2,
+				"AliasCreationIntervalDays": 7
 			},
 			{
 				"GroupName": "Standard",
@@ -33,7 +35,9 @@
 				"AllowMobileApps": true,
 				"BannerUrlMobile": "",
 				"BannerUrlDesktop": "",
-				"BannerLink": ""
+				"BannerLink": "",
+				"MaxAllowedActiveAliasCount": 2,
+				"AliasCreationIntervalDays": 7
 			},
 			{
 				"GroupName": "Pro",
@@ -44,7 +48,9 @@
 				"AllowMobileApps": true,
 				"BannerUrlMobile": "",
 				"BannerUrlDesktop": "",
-				"BannerLink": ""
+				"BannerLink": "",
+				"MaxAllowedActiveAliasCount": 2,
+				"AliasCreationIntervalDays": 7
 			}
 		],
 		"array"
