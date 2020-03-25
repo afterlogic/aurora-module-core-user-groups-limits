@@ -38,7 +38,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('PersonalFiles::GetUserSpaceLimitMb', array($this, 'onGetUserSpaceLimitMb'));
 
 		$this->subscribeEvent('System::RunEntry::before', array($this, 'onBeforeRunEntry'));
-		$this->subscribeEvent('Core::Login::after', array($this, 'onAfterLogin'), 10);
+//		$this->subscribeEvent('Core::Login::after', array($this, 'onAfterLogin'), 10);
+
+		$this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'), 10);
 		$this->subscribeEvent('Files::GetSettingsForEntity::after', array($this, 'onAfterGetSettingsForEntity'));
 		
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
@@ -406,7 +408,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$bState = false;
 		$oAuthenticatedUser = \Aurora\Api::getAuthenticatedUser();
-		if ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin || ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin && $oAuthenticatedUser->IdTenant === $TenantId))
+		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User && ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin || ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin && $oAuthenticatedUser->IdTenant === $TenantId)))
 		{
 			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($TenantId);
 			if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
@@ -479,7 +481,35 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 		}
 	}
-	
+
+	public function onAfterAuthenticate(&$aArgs, &$mResult)
+	{
+		if ($mResult && is_array($mResult) && isset($mResult['token']))
+		{
+			$oUser = \Aurora\System\Api::getUserById((int) $mResult['id']);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant()
+				&& $this->isUserNotFromBusinessTenant($oUser))
+			{
+				$sXClientHeader = (string) \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
+				\Aurora\Api::skipCheckUserRole(true);
+				$bAllowMobileApps = $this->getGroupSetting($oUser->EntityId, 'AllowMobileApps');
+				\Aurora\Api::skipCheckUserRole(false);
+				if (strtolower($sXClientHeader) !== 'webclient' && (!is_bool($bAllowMobileApps) || !$bAllowMobileApps))
+				{
+					throw new \Aurora\System\Exceptions\ApiException(
+						\Aurora\System\Notifications::AccessDenied,
+						null,
+						$this->i18N('ERROR_USER_MOBILE_ACCESS_LIMIT'),
+						[], 
+						$this
+					);
+
+					return true;			
+				}
+			}
+		}
+	}
+		
 	public function onAfterLogin(&$aArgs, &$mResult)
 	{	
 		if($mResult && isset($mResult['AuthToken'])) {
