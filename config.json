@@ -67,5 +67,9 @@
 	"GroupwareModules": [
 		["CorporateCalendar", "S3CorporateFilestorage", "SharedContacts", "SharedFiles", "TeamContacts", "OutlookSyncWebclient"],
 		"array"
+	],
+	"ReservedList": [
+		[],
+		"array"
 	]
 }

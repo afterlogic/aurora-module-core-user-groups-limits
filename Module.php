@@ -9,7 +9,7 @@ namespace Aurora\Modules\CoreUserGroupsLimits;
 
 /**
  * Provides user groups.
- * 
+ *
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
  * @copyright Copyright (c) 2019, Afterlogic Corp.
@@ -23,18 +23,18 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('Mail::SendMessage::before', array($this, 'onBeforeSendMessage'));
 		$this->subscribeEvent('Mail::SendMessage::after', array($this, 'onAfterSendMessage'));
 		$this->subscribeEvent('Mail::CreateAccount::after', array($this, 'onAfterCreateAccount'));
-		
+
 		$this->subscribeEvent('CoreUserGroups::DeleteGroups::after', array($this, 'onAfterRemoveDeleteGroups'));
 		$this->subscribeEvent('CoreUserGroups::RemoveUsersFromGroup::after', array($this, 'onAfterRemoveUsersFromGroup'));
 		$this->subscribeEvent('CoreUserGroups::AddToGroup::after', array($this, 'onAfterAddToGroup'));
 		$this->subscribeEvent('CoreUserGroups::UpdateUserGroup::after', array($this, 'onAfterSaveGroupsOfUser'));
 		$this->subscribeEvent('CoreUserGroups::GetGroups::before', array($this, 'onBeforeGetGroups'));
 		$this->subscribeEvent('CoreUserGroups::CreateGroup::before', array($this, 'onBeforeCreateGroup'));
-		
+
 		$this->subscribeEvent('CpanelIntegrator::CreateAlias::before', array($this, 'onBeforeCreateAlias'));
 		$this->subscribeEvent('CpanelIntegrator::AddNewAlias::after', array($this, 'onAfterCreateAlias'));
 		$this->subscribeEvent('CpanelIntegrator::GetSettings::after', array($this, 'onAfterGetSettings'));
-		
+
 		$this->subscribeEvent('PersonalFiles::GetUserSpaceLimitMb', array($this, 'onGetUserSpaceLimitMb'));
 
 		$this->subscribeEvent('System::RunEntry::before', array($this, 'onBeforeRunEntry'));
@@ -42,7 +42,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		$this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'), 10);
 		$this->subscribeEvent('Files::GetSettingsForEntity::after', array($this, 'onAfterGetSettingsForEntity'));
-		
+
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
 		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
@@ -79,14 +79,16 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('Core::UpdateTenant::after', array($this, 'onAfterUpdateTenant'));
 		$this->subscribeEvent('Core::Tenant::ToResponseArray', array($this, 'onTenantToResponseArray'));
 		$this->subscribeEvent('Core::CreateUser::after', array($this, 'onAfterCreateUser'));
-		
+		$this->subscribeEvent('Mail::CreateAccount::before', array($this, 'onBeforeCreateAccount'));
+		$this->subscribeEvent('CpanelIntegrator::AddNewAlias::before', array($this, 'onBeforeAddNewAlias'));
+
 		\Aurora\Modules\Core\Classes\Tenant::extend(
 			self::GetName(),
 			[
 				'IsBusiness' => array('bool', false),
 			]
 		);
-		
+
 		\Aurora\Modules\Core\Classes\User::extend(
 			self::GetName(),
 			[
@@ -97,11 +99,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 			]
 		);
 	}
-	
+
 	private function getGroupName($iUserId)
 	{
 		$sGroupName = 'Free';
-		
+
 		$oCoreUserGroupsDecorator = \Aurora\Modules\CoreUserGroups\Module::Decorator();
 		$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($iUserId);
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
@@ -112,10 +114,33 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$sGroupName = $oGroup->Name;
 			}
 		}
-		
+
 		return $sGroupName;
 	}
-	
+
+	private function checkIfEmailReserved($sEmail)
+	{
+		$sAccountName = \MailSo\Base\Utils::GetAccountNameFromEmail($sEmail);
+		$sDomain = \MailSo\Base\Utils::GetDomainFromEmail($sEmail);
+		$aDomainObjects = \Aurora\System\Api::GetModuleDecorator('MailDomains')->getDomainsManager()->getFullDomainsList();
+		$aDomains = array_map(function ($oDomain) {
+			return $oDomain->Name;
+		}, $aDomainObjects);
+		$aReservedAccountNames = $this->getConfig('ReservedList', []);
+		if (
+			is_array($aDomains)
+			&& is_array($aReservedAccountNames)
+			&& in_array($sAccountName, $aReservedAccountNames)
+			&& in_array($sDomain, $aDomains)
+		)
+		{
+			return true;
+		}
+
+		return false;
+
+	}
+
 	protected function getGroupSetting($iUserId, $sSettingName)
 	{
 		$sGroupName = $this->getGroupName($iUserId);
@@ -132,14 +157,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 		return $mSettingValue;
 	}
-	
+
 	protected function isTodayEmailSentDate($oUser)
 	{
 		return $oUser instanceof \Aurora\Modules\Core\Classes\User
 				&& ($oUser->{self::GetName() . '::EmailSentDate'} === date('Y-m-d')
 				|| $oUser->{self::GetName() . '::EmailSentDate'} === date('Y-m-d') . ' 00:00:00');
 	}
-	
+
 	protected function isUserNotFromBusinessTenant($oUser)
 	{
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
@@ -160,7 +185,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function onBeforeSendMessage(&$aArgs, &$mResult)
 	{
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
-		
+
 		if ($this->isUserNotFromBusinessTenant($oAuthenticatedUser))
 		{
 			if ($this->isTodayEmailSentDate($oAuthenticatedUser))
@@ -180,7 +205,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 		}
 	}
-	
+
 	/**
 	 * @param array $aArgs
 	 * @param mixed $mResult
@@ -202,7 +227,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oAuthenticatedUser->saveAttributes([self::GetName() . '::EmailSentCount', self::GetName() . '::EmailSentDate']);
 		}
 	}
-	
+
 	public function onGetUserSpaceLimitMb(&$aArgs, &$mResult)
 	{
 		$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aArgs['UserId']);
@@ -215,7 +240,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 		}
 	}
-	
+
 	/**
 	 * Applies capabilities for users from deleted groups.
 	 * @param array $aArgs
@@ -228,7 +253,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$this->setUserListCapabilities($mResult);
 		}
 	}
-	
+
 	/**
 	 * Applies capabilities for users removed from groups.
 	 * @param array $aArgs
@@ -241,7 +266,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$this->setUserListCapabilities($aArgs['UsersIds']);
 		}
 	}
-	
+
 	/**
 	 * Applies capabilities for users removed from groups.
 	 * @param array $aArgs
@@ -254,7 +279,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$this->setUserListCapabilities($aArgs['UsersIds']);
 		}
 	}
-	
+
 	/**
 	 * Applies capabilities for user.
 	 * @param array $aArgs
@@ -267,7 +292,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$this->setUserListCapabilities([$aArgs['UserId']]);
 		}
 	}
-	
+
 	public function onAfterGetSettings($aArgs, &$mResult)
 	{
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
@@ -288,7 +313,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 		}
 	}
-	
+
 	public function onBeforeCreateAlias($aArgs, &$mResult)
 	{
 		$iTenantId = $aArgs['TenantId'];
@@ -352,7 +377,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_NOT_ALLOWED_HAVE_GROUPS'));
 		}
 	}
-	
+
 	public function onBeforeCreateGroup(&$aArgs, &$mResult)
 	{
 		$iTenantId = $aArgs['TenantId'];
@@ -362,7 +387,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_NOT_ALLOWED_HAVE_GROUPS'));
 		}
 	}
-	
+
 	/**
 	 * Applies capabilities for users.
 	 * @param array $aUsersIds
@@ -377,13 +402,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			$aUsers = $oEavManager->getEntities(\Aurora\Modules\Core\Classes\User::class, [], 0, 0, $aFilters, 'PublicId', \Aurora\System\Enums\SortOrder::ASC);
 		}
-		
+
 		foreach ($aUsers as $oUser)
 		{
 			$this->setUserCapabilities($oUser);
 		}
 	}
-	
+
 	/**
 	 * Applies capabilities for user.
 	 * @param \Aurora\Modules\Core\Classes\User $oUser
@@ -464,16 +489,16 @@ class Module extends \Aurora\System\Module\AbstractModule
 			if (strtolower($sXClientHeader) !== 'webclient' && (!is_bool($bAllowMobileApps) || !$bAllowMobileApps))
 			{
 				$mResult = \Aurora\System\Managers\Response::GetJsonFromObject(
-					'Json', 
+					'Json',
 					\Aurora\System\Managers\Response::ExceptionResponse(
-						'RunEntry', 
+						'RunEntry',
 						new \Aurora\System\Exceptions\ApiException(
 							\Aurora\System\Notifications::AccessDenied,
 							null,
 							$this->i18N('ERROR_USER_MOBILE_ACCESS_LIMIT'),
-							[], 
+							[],
 							$this
-						)	
+						)
 					)
 				);
 
@@ -500,18 +525,18 @@ class Module extends \Aurora\System\Module\AbstractModule
 						\Aurora\System\Notifications::AccessDenied,
 						null,
 						$this->i18N('ERROR_USER_MOBILE_ACCESS_LIMIT'),
-						[], 
+						[],
 						$this
 					);
 
-					return true;			
+					return true;
 				}
 			}
 		}
 	}
-		
+
 	public function onAfterLogin(&$aArgs, &$mResult)
-	{	
+	{
 		if($mResult && isset($mResult['AuthToken'])) {
 			$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
 			if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User
@@ -529,7 +554,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 						\Aurora\System\Notifications::AccessDenied,
 						null,
 						$this->i18N('ERROR_USER_MOBILE_ACCESS_LIMIT'),
-						[], 
+						[],
 						$this
 					);
 
@@ -538,7 +563,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 		}
 	}
-	
+
 	public function onTenantToResponseArray($aArgs, &$mResult)
 	{
 		$oTenant = $aArgs['Tenant'];
@@ -548,14 +573,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$mResult[self::GetName() . '::EnableGroupware'] = $this->GetGroupwareState($oTenant->EntityId);
 		}
 	}
-	
+
 	protected function getBusinessTenantLimits($sSettingName)
 	{
 		$aBusinessTenantLimitsConfig = $this->getConfig('BusinessTenantLimits', []);
 		$aBusinessTenantLimits = is_array($aBusinessTenantLimitsConfig) && count($aBusinessTenantLimitsConfig) > 0 ? $aBusinessTenantLimitsConfig[0] : [];
 		return is_array($aBusinessTenantLimitsConfig) && isset($aBusinessTenantLimits[$sSettingName]) ? $aBusinessTenantLimits[$sSettingName] : null;
 	}
-	
+
 	public function onBeforeCreateUser($aArgs, &$mResult)
 	{
 		$iTenantId = $aArgs['TenantId'];
@@ -574,8 +599,68 @@ class Module extends \Aurora\System\Module\AbstractModule
 				}
 			}
 		}
+		if (isset($aArgs['PublicId']) && $this->checkIfEmailReserved($aArgs['PublicId']))
+		{
+			$oUser = \Aurora\System\Api::getAuthenticatedUser();
+			if (
+				$oUser instanceof \Aurora\Modules\Core\Classes\User
+				&& ($oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin
+					|| $oUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin)
+				&& isset($aArgs['Forced']) && $aArgs['Forced'] === true
+			)
+			{
+				//Only SuperAdmin or TenantAdmin can creaete User if it was reserved
+			}
+			else
+			{
+				throw new \Exception($this->i18N('ERROR_EMAIL_IS_RESERVED'));
+			}
+		}
 	}
-	
+
+	public function onBeforeCreateAccount($aArgs, &$mResult)
+	{
+		if (isset($aArgs['Email']) && $this->checkIfEmailReserved($aArgs['Email']))
+		{
+			$oUser = \Aurora\System\Api::getAuthenticatedUser();
+			if (
+				$oUser instanceof \Aurora\Modules\Core\Classes\User
+				&& ($oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin
+					|| $oUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin)
+			)
+			{
+				//Only SuperAdmin or TenantAdmin can creaete Account if it was reserved
+			}
+			else
+			{
+				throw new \Exception($this->i18N('ERROR_EMAIL_IS_RESERVED'));
+			}
+		}
+	}
+
+	public function onBeforeAddNewAlias($aArgs, &$mResult)
+	{
+		if (
+			isset($aArgs['AliasName']) && isset($aArgs['AliasDomain'])
+			&& $this->checkIfEmailReserved($aArgs['AliasName'] . '@' . $aArgs['AliasDomain'])
+		)
+		{
+			$oUser = \Aurora\System\Api::getAuthenticatedUser();
+			if (
+				$oUser instanceof \Aurora\Modules\Core\Classes\User
+				&& ($oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin
+					|| $oUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin)
+			)
+			{
+				//Only SuperAdmin or TenantAdmin can creaete alias if it was reserved
+			}
+			else
+			{
+				throw new \Exception($this->i18N('ERROR_EMAIL_IS_RESERVED'));
+			}
+		}
+	}
+
 	/**
 	 * @param array $aArgs
 	 * @param mixed $mResult
@@ -637,7 +722,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 		}
 	}
-	
+
 	/**
 	 * @deprecated since version 8.3.7
 	 */
@@ -645,7 +730,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$this->onAfterCreateTenant($aArgs, $mResult);
 	}
-	
+
 	public function onAfterCreateTenant($aArgs, &$mResult)
 	{
 		$iTenantId = $mResult;
@@ -669,11 +754,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 						{
 							$oTenant->{'Files::UserSpaceLimitMb'} = $oFilesModule->getConfig('UserSpaceLimitMb');
 							$oTenant->{'Files::TenantSpaceLimitMb'} = $iFilesStorageQuotaMb;
-			
+
 							$aAttributesToSave[] = 'Files::UserSpaceLimitMb';
 							$aAttributesToSave[] = 'Files::TenantSpaceLimitMb';
 						}
-						
+
 						$iMailStorageQuotaMb = $this->getBusinessTenantLimits('MailStorageQuotaMb');
 						if (is_int($iMailStorageQuotaMb))
 						{
@@ -697,7 +782,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 		}
 	}
-	
+
 	/**
 	 * @deprecated since version 8.3.7
 	 */
@@ -753,7 +838,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function GetSettings()
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-		
+
 		$aSettings = array(
 			'BannerUrlMobile' => '',
 			'BannerUrlDesktop' => '',
@@ -770,5 +855,79 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		return $aSettings;
+	}
+
+	/**
+	 * Reterns a list of reserved names
+	 */
+	public function GetReservedNames()
+	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+
+		return $this->getConfig('ReservedList', []);
+	}
+
+	/**
+	 * Adds a new item to the reserved list
+	 *
+	 * @param string AccountName
+	 * @return boolean
+	 */
+	public function AddNewReservedName($AccountName)
+	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+
+		$bResult = false;
+		$sAccountName = strtolower($AccountName);
+		$aCurrentReservedList = $this->getConfig('ReservedList', []);
+		if (in_array($sAccountName, $aCurrentReservedList))
+		{
+			throw new \Exception($this->i18N('ERROR_NAME_ALREADY_IN_RESERVED_LIST'));
+		}
+		else
+		{
+			try
+			{
+				$aCurrentReservedList[] = $sAccountName;
+				$this->setConfig('ReservedList', $aCurrentReservedList);
+				$this->saveModuleConfig();
+				$bResult = true;
+			}
+			catch (\Exception $ex)
+			{
+				throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::CanNotSaveSettings);
+			}
+		}
+
+		return $bResult;
+	}
+
+	/**
+	 * Removes the specified names from the list
+	 *
+	 * @param array ReservedNames
+	 * @return boolean
+	 */
+	public function DeleteReservedNames($ReservedNames)
+	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+
+		$bResult = false;
+
+		if (!is_array($ReservedNames) || empty($ReservedNames))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		else
+		{
+			$aCurrentReservedList = $this->getConfig('ReservedList', []);
+			$newReservedList = array_diff($aCurrentReservedList, $ReservedNames);
+			//"array_values" needed to reset array keys after deletion
+			$this->setConfig('ReservedList', array_values($newReservedList));
+			$this->saveModuleConfig();
+			$bResult = true;
+		}
+
+		return $bResult;
 	}
 }

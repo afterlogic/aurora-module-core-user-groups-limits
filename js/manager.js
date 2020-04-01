@@ -5,36 +5,34 @@ module.exports = function (oAppData) {
 		$ = require('jquery'),
 		ko = require('knockout'),
 
+		TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
-
 		Settings = require('modules/%ModuleName%/js/Settings.js'),
 
 		bInitialized = false
 	;
 
 	Settings.init(oAppData);
-	
-	if (App.isUserNormalOrTenant())
-	{
-		if (App.isMobile())
-		{
+
+	if (App.isMobile()) {
+		if (App.isUserNormalOrTenant()) {
 			return {
 				start: function (ModulesManager) {
 					App.subscribeEvent('MailMobileWebclient::ConstructView::after', function (oParams) {
 						if (ko.isSubscribable(oParams.View.selectedPanel) && !bInitialized) {
 
 							var sHtml = '';
-								sHtml += '<span class="banner" style="display: block; text-align: center;">';
-								sHtml += Settings.BannerLink !== '' ? `<a href="${Settings.BannerLink}" target="_blank">` : '';
-								sHtml += Settings.BannerUrlMobile !== '' ? `<img src="${Settings.BannerUrlMobile}" />` : '';
-								sHtml += Settings.ShowTitle !== '' ? `<span class="link" data-bind="i18n: {'key': '%MODULENAME%/UPRGADE_NOW'}"></span>` : '';
-								sHtml += Settings.BannerLink !== '' ? '</a>' : '';
-								sHtml += '</span>';
+							sHtml += '<span class="banner" style="display: block; text-align: center;">';
+							sHtml += Settings.BannerLink !== '' ? `<a href="${Settings.BannerLink}" target="_blank">` : '';
+							sHtml += Settings.BannerUrlMobile !== '' ? `<img src="${Settings.BannerUrlMobile}" />` : '';
+							sHtml += Settings.ShowTitle !== '' ? `<span class="link" data-bind="i18n: {'key': '%MODULENAME%/UPRGADE_NOW'}"></span>` : '';
+							sHtml += Settings.BannerLink !== '' ? '</a>' : '';
+							sHtml += '</span>';
 
 							var oBannerEl = $(sHtml);
 							oParams.View.selectedPanel.subscribe(function (value) {
 								if (!bInitialized && Enums.MobilePanel.Groups === value) {
-									$("#auroraContent").find('.MailLayout').find('.panel-left').prepend(oBannerEl); 
+									$("#auroraContent").find('.MailLayout').find('.panel-left').prepend(oBannerEl);
 									bInitialized = true;
 								}
 							});
@@ -42,16 +40,47 @@ module.exports = function (oAppData) {
 					});
 				}
 			};
-		} else {
-			return {
-				getHeaderItem: function () {
-					return {
-						item: require('modules/%ModuleName%/js/views/HeaderItemView.js'),
-						name: ''
-					};
-				}
-			};
-		};
+		}
+	}
+	else {
+		var
+			fGetHeaderItem = function () {
+				return {
+					item: require('modules/%ModuleName%/js/views/HeaderItemView.js'),
+					name: ''
+				};
+			},
+			fStart = function (ModulesManager) {
+				ModulesManager.run('AdminPanelWebclient', 'registerAdminPanelTab', [
+					function (resolve) {
+						require.ensure(
+							['modules/%ModuleName%/js/views/AdminSettingsView.js'],
+							function () {
+								resolve(require('modules/%ModuleName%/js/views/AdminSettingsView.js'));
+							},
+							'admin-bundle'
+						);
+					},
+					Settings.HashReservedList,
+					TextUtils.i18n('%MODULENAME%/ADMIN_SETTINGS_TAB_LABEL')
+				]);
+			},
+			oResult = {}
+		;
+
+		switch (App.getUserRole()) {
+			case Enums.UserRole.SuperAdmin:
+				oResult.start = fStart;
+				break;
+			case Enums.UserRole.TenantAdmin:
+			case Enums.UserRole.NormalUser:
+				oResult.getHeaderItem = fGetHeaderItem;
+				break;
+			default:
+				break;
+		}
+
+		return oResult;
 	}
 
 	return null;
