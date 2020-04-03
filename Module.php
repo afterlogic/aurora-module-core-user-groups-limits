@@ -81,6 +81,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('Core::CreateUser::after', array($this, 'onAfterCreateUser'));
 		$this->subscribeEvent('Mail::CreateAccount::before', array($this, 'onBeforeCreateAccount'));
 		$this->subscribeEvent('CpanelIntegrator::AddNewAlias::before', array($this, 'onBeforeAddNewAlias'));
+		$this->subscribeEvent('Mail::IsEmailAllowedForCreation::after', array($this, 'onAfterIsEmailAllowedForCreation'));
 
 		\Aurora\Modules\Core\Classes\Tenant::extend(
 			self::GetName(),
@@ -832,6 +833,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$mResult['AllowEditUserSpaceLimitMb'] = $oTenant->{self::GetName() . '::IsBusiness'};
 				}
 			}
+		}
+	}
+
+	public function onAfterIsEmailAllowedForCreation($aArgs, &$mResult)
+	{
+		if ($mResult && isset($aArgs['Email']))
+		{
+			$mResult = !$this->checkIfEmailReserved($aArgs['Email']);
 		}
 	}
 
