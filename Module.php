@@ -107,7 +107,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		$oCoreUserGroupsDecorator = \Aurora\Modules\CoreUserGroups\Module::Decorator();
 		$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($iUserId);
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+		if ($oCoreUserGroupsDecorator && $oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
 			$oGroup = $oCoreUserGroupsDecorator->GetGroup($oUser->{'CoreUserGroups::GroupId'});
 			if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group)
