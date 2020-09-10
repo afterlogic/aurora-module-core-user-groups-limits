@@ -23,9 +23,9 @@ module.exports = function (oAppData) {
 
 							var sHtml = '';
 							sHtml += '<span class="banner" style="display: block; text-align: center;">';
-							sHtml += Settings.BannerLink !== '' ? `<a href="${Settings.BannerLink}" target="_blank">` : '';
-							sHtml += Settings.BannerUrlMobile !== '' ? `<img src="${Settings.BannerUrlMobile}" />` : '';
-							sHtml += Settings.ShowTitle !== '' ? `<span class="link" data-bind="i18n: {'key': '%MODULENAME%/UPRGADE_NOW'}"></span>` : '';
+							sHtml += Settings.BannerLink !== '' ? '<a href="' + Settings.BannerLink + '" target="_blank">' : '';
+							sHtml += Settings.BannerUrlMobile !== '' ? '<img src="' + Settings.BannerUrlMobile + '" />' : '';
+							sHtml += Settings.ShowTitle !== '' ? '<span class="link">' + TextUtils.i18n('%MODULENAME%/ADMIN_SETTINGS_TAB_LABEL') + '</span>' : '';
 							sHtml += Settings.BannerLink !== '' ? '</a>' : '';
 							sHtml += '</span>';
 
