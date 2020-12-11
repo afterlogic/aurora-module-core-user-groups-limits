@@ -41,6 +41,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 //		$this->subscribeEvent('Core::Login::after', array($this, 'onAfterLogin'), 10);
 
 		$this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'), 10);
+		$this->subscribeEvent('Core::GetUsers::before', array($this, 'onBeforeGetUsers'));
+		
 		$this->subscribeEvent('Files::GetSettingsForEntity::after', array($this, 'onAfterGetSettingsForEntity'));
 
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
@@ -288,6 +290,27 @@ class Module extends \Aurora\System\Module\AbstractModule
 			{
 				$mResult = $iFilesQuotaMb;
 			}
+		}
+	}
+
+	public function onBeforeGetUsers(&$aArgs, &$mResult)
+	{
+		if (isset($aArgs['GroupId']) && $aArgs['GroupId'] !== -1)
+		{
+				\Aurora\System\Api::Log($aArgs['GroupId'], \Aurora\System\Enums\LogLevel::Full, 'ss-');
+			if (isset($aArgs['Filters']) && is_array($aArgs['Filters']) && count($aArgs['Filters']) > 0)
+			{
+				\Aurora\System\Api::Log($aArgs['Filters'], \Aurora\System\Enums\LogLevel::Full, 'ss-');
+				$aArgs['Filters']['CoreUserGroups::GroupId'] = [$aArgs['GroupId'], '='];
+				$aArgs['Filters'] = [
+					'$AND' => $aArgs['Filters']
+				];
+			}
+			else
+			{
+				$aArgs['Filters'] = ['CoreUserGroups::GroupId' => [$aArgs['GroupId'], '=']];
+			}
+			\Aurora\System\Api::Log($aArgs['Filters'], \Aurora\System\Enums\LogLevel::Full, 'ss-');
 		}
 	}
 

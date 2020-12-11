@@ -2,11 +2,14 @@
 
 module.exports = function (oAppData) {
 	var
+		_ = require('underscore'),
 		$ = require('jquery'),
 		ko = require('knockout'),
 
 		TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
+		
+		Cache = require('modules/%ModuleName%/js/Cache.js'),
 		Settings = require('modules/%ModuleName%/js/Settings.js'),
 
 		bInitialized = false
@@ -67,42 +70,27 @@ module.exports = function (oAppData) {
 				
 				ModulesManager.run('AdminPanelWebclient', 'changeAdminPanelEntityData', [{
 					Type: 'Group',
-					EditView: require('modules/%ModuleName%/js/views/EditGroupView.js'),
-					EntitiesCountText: TextUtils.i18n('%MODULENAME%/LABEL_USERS_COUNT')
+					EditView: require('modules/%ModuleName%/js/views/EditGroupView.js')
 				}]);
-//				ModulesManager.run('AdminPanelWebclient', 'changeAdminPanelEntityData', [{
-//					Type: 'User',
-//					Filters: [
-//						{
-//							sEntity: 'Group',
-//							sField: 'GroupId',
-//							mList: function () {
-//								return [
-//									{
-//										text: 'Free',
-//										value: 'Free'
-//									},
-//									{
-//										text: 'Standard',
-//										value: 'Standard'
-//									},
-//									{
-//										text: 'Pro',
-//										value: 'Pro'
-//									}
-//								];
-////								return _.map(Cache.domains(), function (oDomain) {
-////									return {
-////										text: oDomain.Name,
-////										value: oDomain.Id
-////									};
-////								});
-//							},
-//							sAllText: TextUtils.i18n('%MODULENAME%/LABEL_ALL_DOMAINS'),
-//							sNotInAnyText: TextUtils.i18n('%MODULENAME%/LABEL_NOT_IN_ANY_DOMAIN')
-//						}
-//					]
-//				}]);
+				ModulesManager.run('AdminPanelWebclient', 'changeAdminPanelEntityData', [{
+					Type: 'User',
+					Filters: [
+						{
+							sEntity: 'Group',
+							sField: 'GroupId',
+							mList: function () {
+								return _.map(Cache.groups(), function (oGroup) {
+									return {
+										text: oGroup.Name,
+										value: oGroup.Id
+									};
+								});
+							},
+							sAllText: TextUtils.i18n('%MODULENAME%/LABEL_ALL_GROUPS'),
+							sNotInAnyText: TextUtils.i18n('%MODULENAME%/LABEL_NOT_IN_ANY_GROUP')
+						}
+					]
+				}]);
 			},
 			oResult = {}
 		;

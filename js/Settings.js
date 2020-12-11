@@ -8,6 +8,7 @@ var
 
 module.exports = {
 	ServerModuleName: '%ModuleName%',
+	UserGroupsServerModuleName: 'CoreUserGroups',
 	HashReservedList: 'reserved-list',
 	HashLimits: 'limits',
 
