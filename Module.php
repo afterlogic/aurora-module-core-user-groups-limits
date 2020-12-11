@@ -12,7 +12,7 @@ namespace Aurora\Modules\CoreUserGroupsLimits;
  *
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
- * @copyright Copyright (c) 2019, Afterlogic Corp.
+ * @copyright Copyright (c) 2020, Afterlogic Corp.
  *
  * @package Modules
  */
@@ -82,6 +82,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('Mail::CreateAccount::before', array($this, 'onBeforeCreateAccount'));
 		$this->subscribeEvent('CpanelIntegrator::AddNewAlias::before', array($this, 'onBeforeAddNewAlias'));
 		$this->subscribeEvent('Mail::IsEmailAllowedForCreation::after', array($this, 'onAfterIsEmailAllowedForCreation'));
+		$this->subscribeEvent('CoreUserGroups::Group::ToResponseArray', array($this, 'onGroupToResponseArray'));
+		$this->subscribeEvent('CoreUserGroups::UpdateGroup::after', array($this, 'onAfterUpdateGroup'));
 
 		\Aurora\Modules\Core\Classes\Tenant::extend(
 			self::GetName(),
@@ -99,24 +101,23 @@ class Module extends \Aurora\System\Module\AbstractModule
 				'LastAliasCreationDate' => ['datetime', date('Y-m-d H:i:s', 0), true] //time of last created alias (still active or already deleted) for the account
 			]
 		);
-	}
-
-	private function getGroupName($iUserId)
-	{
-		$sGroupName = 'Free';
-
-		$oCoreUserGroupsDecorator = \Aurora\Modules\CoreUserGroups\Module::Decorator();
-		$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($iUserId);
-		if ($oCoreUserGroupsDecorator && $oUser instanceof \Aurora\Modules\Core\Classes\User)
-		{
-			$oGroup = $oCoreUserGroupsDecorator->GetGroup($oUser->{'CoreUserGroups::GroupId'});
-			if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group)
-			{
-				$sGroupName = $oGroup->Name;
-			}
-		}
-
-		return $sGroupName;
+		
+		\Aurora\Modules\CoreUserGroups\Classes\Group::extend(
+			self::GetName(),
+			[
+				'DataSavedInDb' => array('bool', false),
+				'EmailSendLimitPerDay' => array('int', 0),
+				'MailSignature' => array('string', ''),
+				'MailQuotaMb' => array('int', 0),
+				'FilesQuotaMb' => array('int', 0),
+				'AllowMobileApps' => array('bool', false),
+				'BannerUrlMobile' => array('string', ''),
+				'BannerUrlDesktop' => array('string', ''),
+				'BannerLink' => array('string', ''),
+				'MaxAllowedActiveAliasCount' => array('int', 0),
+				'AliasCreationIntervalDays' => array('int', 0),
+			]
+		);
 	}
 
 	private function checkIfEmailReserved($sEmail)
@@ -144,19 +145,67 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	protected function getGroupSetting($iUserId, $sSettingName)
 	{
-		$sGroupName = $this->getGroupName($iUserId);
-		$aGroupsLimits = $this->getConfig('GroupsLimits', '');
-		$mSettingValue = null;
-		$iIndex = array_search($sGroupName, array_column($aGroupsLimits, 'GroupName'));
-		if ($iIndex === false)
+		$aAllSettings = null;
+		$oCoreUserGroupsDecorator = \Aurora\Modules\CoreUserGroups\Module::Decorator();
+		$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($iUserId);
+		if ($oCoreUserGroupsDecorator && $oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
-			$iIndex = 0;
+			$oGroup = $oCoreUserGroupsDecorator->GetGroup($oUser->{'CoreUserGroups::GroupId'});
+			$aAllSettings = $this->getAllSettingsOfGroup($oGroup);
 		}
-		if (isset($aGroupsLimits[$iIndex]) && isset($aGroupsLimits[$iIndex][$sSettingName]))
+		return is_array($aAllSettings) && isset($aAllSettings[$sSettingName]) ? $aAllSettings[$sSettingName] : null;
+	}
+
+	/**
+	 * Obtains all settings for group.
+	 * If group is specified and its settings are saved in DB, then obtains settings from DB.
+	 * If group is specified and its settings are not saved in DB, then obtains settings from config file by group name.
+	 * If group is not specified or there are no settings for the group name in config file, then obtains settings from config file for group named "Free".
+	 * @param \Aurora\Modules\CoreUserGroups\Classes\Group|null $oGroup
+	 * @return array|null
+	 */
+	protected function getAllSettingsOfGroup($oGroup)
+	{
+		$aAllSettings = null;
+		
+		if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group && $oGroup->{self::GetName() . '::DataSavedInDb'})
 		{
-			$mSettingValue = $aGroupsLimits[$iIndex][$sSettingName];
+			$aAllSettings = [
+				'EmailSendLimitPerDay' => $oGroup->{self::GetName() . '::EmailSendLimitPerDay'},
+				'MailSignature' => $oGroup->{self::GetName() . '::MailSignature'},
+				'MailQuotaMb' => $oGroup->{self::GetName() . '::MailQuotaMb'},
+				'FilesQuotaMb' => $oGroup->{self::GetName() . '::FilesQuotaMb'},
+				'AllowMobileApps' => $oGroup->{self::GetName() . '::AllowMobileApps'},
+				'BannerUrlMobile' => $oGroup->{self::GetName() . '::BannerUrlMobile'},
+				'BannerUrlDesktop' => $oGroup->{self::GetName() . '::BannerUrlDesktop'},
+				'BannerLink' => $oGroup->{self::GetName() . '::BannerLink'},
+				'MaxAllowedActiveAliasCount' => $oGroup->{self::GetName() . '::MaxAllowedActiveAliasCount'},
+				'AliasCreationIntervalDays' => $oGroup->{self::GetName() . '::AliasCreationIntervalDays'},
+			];
 		}
-		return $mSettingValue;
+		else
+		{
+			$aGroupsLimits = $this->getConfig('GroupsLimits', '');
+			$iIndex = false;
+			if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group)
+			{
+				$iIndex = array_search($oGroup->Name, array_column($aGroupsLimits, 'GroupName'));
+			}
+			if ($iIndex === false)
+			{
+				$iIndex = array_search('Free', array_column($aGroupsLimits, 'GroupName'));
+			}
+			if ($iIndex === false)
+			{
+				$iIndex = 0;
+			}
+			if (isset($aGroupsLimits[$iIndex]) && is_array($aGroupsLimits[$iIndex]))
+			{
+				$aAllSettings = $aGroupsLimits[$iIndex];
+			}
+		}
+		
+		return $aAllSettings;
 	}
 
 	protected function isTodayEmailSentDate($oUser)
@@ -331,7 +380,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{//not Business tenant
 			$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aArgs['UserId']);
 			$iMaxAllowedActiveAliasCount = $this->getGroupSetting($oUser->EntityId, 'MaxAllowedActiveAliasCount');
-			$iAliasCreationIntervalDays = $this->getGroupSetting($oUser->EntityId, 'AliasCreationIntervalDays'); //how many days must pass since the user is allowed to create an alias again (once the user hit MaxAllowedActiveAliasCount limit)
+			//how many days must pass since the user is allowed to create an alias again (once the user hit MaxAllowedActiveAliasCount limit)
+			$iAliasCreationIntervalDays = $this->getGroupSetting($oUser->EntityId, 'AliasCreationIntervalDays');
 			$bLimitedExceeded = true;
 			$iActualAliasesCount = is_array($aArgs['UserAliases']) ? count($aArgs['UserAliases']) : 0;
 			$dLastAliasCreationDatel = new \DateTime($oUser->{self::GetName() . '::LastAliasCreationDate'}, new \DateTimeZone('UTC'));
@@ -564,7 +614,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 		}
 	}
-
+	
 	public function onTenantToResponseArray($aArgs, &$mResult)
 	{
 		$oTenant = $aArgs['Tenant'];
@@ -572,6 +622,25 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			$mResult[self::GetName() . '::IsBusiness'] = $oTenant->{self::GetName() . '::IsBusiness'};
 			$mResult[self::GetName() . '::EnableGroupware'] = $this->GetGroupwareState($oTenant->EntityId);
+		}
+	}
+
+	public function onGroupToResponseArray($aArgs, &$mResult)
+	{
+		if (is_array($mResult))
+		{
+			$oGroup = isset($aArgs['Group']) ? $aArgs['Group'] : null;
+			$aAllSettings = $this->getAllSettingsOfGroup($oGroup);
+			$mResult[self::GetName() . '::EmailSendLimitPerDay'] = $aAllSettings['EmailSendLimitPerDay'];
+			$mResult[self::GetName() . '::MailSignature'] = $aAllSettings['MailSignature'];
+			$mResult[self::GetName() . '::MailQuotaMb'] = $aAllSettings['MailQuotaMb'];
+			$mResult[self::GetName() . '::FilesQuotaMb'] = $aAllSettings['FilesQuotaMb'];
+			$mResult[self::GetName() . '::AllowMobileApps'] = $aAllSettings['AllowMobileApps'];
+			$mResult[self::GetName() . '::BannerUrlMobile'] = $aAllSettings['BannerUrlMobile'];
+			$mResult[self::GetName() . '::BannerUrlDesktop'] = $aAllSettings['BannerUrlDesktop'];
+			$mResult[self::GetName() . '::BannerLink'] = $aAllSettings['BannerLink'];
+			$mResult[self::GetName() . '::MaxAllowedActiveAliasCount'] = $aAllSettings['MaxAllowedActiveAliasCount'];
+			$mResult[self::GetName() . '::AliasCreationIntervalDays'] = $aAllSettings['AliasCreationIntervalDays'];
 		}
 	}
 
@@ -808,6 +877,36 @@ class Module extends \Aurora\System\Module\AbstractModule
 						$this->UpdateGroupwareState($iTenantId, $aArgs[self::GetName() . '::EnableGroupware']);
 					}
 				}
+			}
+		}
+	}
+	
+	/**
+	 * Update all extended props of the group.
+	 * @param array $aArgs
+	 * @param boolean $mResult
+	 */
+	public function onAfterUpdateGroup($aArgs, &$mResult)
+	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::TenantAdmin);
+		$oCoreUserGroupsDecorator = \Aurora\Modules\CoreUserGroups\Module::Decorator();
+		if ($mResult && $oCoreUserGroupsDecorator)
+		{
+			$oGroup = $oCoreUserGroupsDecorator->GetGroup($aArgs['Id']);
+			if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group)
+			{
+				$oGroup->{self::GetName() . '::DataSavedInDb'} = false;
+				$oGroup->{self::GetName() . '::EmailSendLimitPerDay'} = $aArgs[self::GetName() . '::EmailSendLimitPerDay'];
+				$oGroup->{self::GetName() . '::MailSignature'} = $aArgs[self::GetName() . '::MailSignature'];
+				$oGroup->{self::GetName() . '::MailQuotaMb'} = $aArgs[self::GetName() . '::MailQuotaMb'];
+				$oGroup->{self::GetName() . '::FilesQuotaMb'} = $aArgs[self::GetName() . '::FilesQuotaMb'];
+				$oGroup->{self::GetName() . '::AllowMobileApps'} = $aArgs[self::GetName() . '::AllowMobileApps'];
+				$oGroup->{self::GetName() . '::BannerUrlMobile'} = $aArgs[self::GetName() . '::BannerUrlMobile'];
+				$oGroup->{self::GetName() . '::BannerUrlDesktop'} = $aArgs[self::GetName() . '::BannerUrlDesktop'];
+				$oGroup->{self::GetName() . '::BannerLink'} = $aArgs[self::GetName() . '::BannerLink'];
+				$oGroup->{self::GetName() . '::MaxAllowedActiveAliasCount'} = $aArgs[self::GetName() . '::MaxAllowedActiveAliasCount'];
+				$oGroup->{self::GetName() . '::AliasCreationIntervalDays'} = $aArgs[self::GetName() . '::AliasCreationIntervalDays'];
+				$mResult = $mResult && $oGroup->save();
 			}
 		}
 	}

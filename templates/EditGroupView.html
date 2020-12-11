@@ -1,0 +1,80 @@
+<div class="row">
+	<span class="label" data-bind="i18n: {'key': 'COREWEBCLIENT/LABEL_NAME'}"></span>
+	<span class="value">
+		<span data-bind="text: name, visible: !createMode()"></span>
+		<input class="input" type="text" data-bind="value: name, valueUpdate: 'afterkeydown', visible: createMode, 
+			onEnter: function () { saveEntity($parents, $root); }" />
+	</span>
+</div>
+<!-- ko if: !createMode() -->
+	<div class="row">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_EMAIL_SEND_LIMIT_PER_DAY'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: emailSendLimitPerDay, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_MAIL_SIGNATURE'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: mailSignature, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_MAIL_QUOTA_MB'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: mailQuotaMb, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_FILES_QUOTA_MB'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: filesQuotaMb, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_ALLOW_MOBILE_APPS'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: allowMobileApps, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_BANNER_URL_MOBILE'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: bannerUrlMobile, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_BANNER_URL_DESKTOP'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: bannerUrlDesktop, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_BANNER_LINK'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: bannerLink, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_MAX_ACTIVE_ALIAS_COUNT'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: maxAllowedActiveAliasCount, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_ALIAS_CREATION_INTERVAL_DAYS'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: aliasCreationIntervalDays, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+<!-- /ko -->

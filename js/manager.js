@@ -64,6 +64,45 @@ module.exports = function (oAppData) {
 					Settings.HashReservedList,
 					TextUtils.i18n('%MODULENAME%/ADMIN_SETTINGS_TAB_LABEL')
 				]);
+				
+				ModulesManager.run('AdminPanelWebclient', 'changeAdminPanelEntityData', [{
+					Type: 'Group',
+					EditView: require('modules/%ModuleName%/js/views/EditGroupView.js'),
+					EntitiesCountText: TextUtils.i18n('%MODULENAME%/LABEL_USERS_COUNT')
+				}]);
+//				ModulesManager.run('AdminPanelWebclient', 'changeAdminPanelEntityData', [{
+//					Type: 'User',
+//					Filters: [
+//						{
+//							sEntity: 'Group',
+//							sField: 'GroupId',
+//							mList: function () {
+//								return [
+//									{
+//										text: 'Free',
+//										value: 'Free'
+//									},
+//									{
+//										text: 'Standard',
+//										value: 'Standard'
+//									},
+//									{
+//										text: 'Pro',
+//										value: 'Pro'
+//									}
+//								];
+////								return _.map(Cache.domains(), function (oDomain) {
+////									return {
+////										text: oDomain.Name,
+////										value: oDomain.Id
+////									};
+////								});
+//							},
+//							sAllText: TextUtils.i18n('%MODULENAME%/LABEL_ALL_DOMAINS'),
+//							sNotInAnyText: TextUtils.i18n('%MODULENAME%/LABEL_NOT_IN_ANY_DOMAIN')
+//						}
+//					]
+//				}]);
 			},
 			oResult = {}
 		;

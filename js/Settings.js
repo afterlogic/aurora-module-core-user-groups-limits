@@ -9,6 +9,7 @@ var
 module.exports = {
 	ServerModuleName: '%ModuleName%',
 	HashReservedList: 'reserved-list',
+	HashLimits: 'limits',
 
 	BannerUrlMobile: '',
 	BannerUrlDesktop: '',
