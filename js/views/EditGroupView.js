@@ -146,7 +146,6 @@ CEditGroupView.prototype.getParametersForSave = function ()
 	return {
 		'Id': this.id(),
 		'Name': $.trim(this.name()),
-		'%ModuleName%::DataSavedInDb': true,
 		'%ModuleName%::EmailSendLimitPerDay': this.emailSendLimitPerDay(),
 		'%ModuleName%::MailSignature': this.mailSignature(),
 		'%ModuleName%::MailQuotaMb': this.mailQuotaMb(),

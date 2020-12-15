@@ -27,7 +27,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('CoreUserGroups::DeleteGroups::after', array($this, 'onAfterRemoveDeleteGroups'));
 		$this->subscribeEvent('CoreUserGroups::RemoveUsersFromGroup::after', array($this, 'onAfterRemoveUsersFromGroup'));
 		$this->subscribeEvent('CoreUserGroups::AddToGroup::after', array($this, 'onAfterAddToGroup'));
-		$this->subscribeEvent('CoreUserGroups::UpdateUserGroup::after', array($this, 'onAfterSaveGroupsOfUser'));
+		$this->subscribeEvent('CoreUserGroups::UpdateUserGroup::before', array($this, 'onBeforeUpdateUserGroup'));
+		$this->subscribeEvent('CoreUserGroups::UpdateUserGroup::after', array($this, 'onAfterUpdateUserGroup'));
 		$this->subscribeEvent('CoreUserGroups::GetGroups::before', array($this, 'onBeforeGetGroups'));
 		$this->subscribeEvent('CoreUserGroups::CreateGroup::before', array($this, 'onBeforeCreateGroup'));
 
@@ -353,15 +354,54 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 
+	public function onBeforeUpdateUserGroup(&$aArgs, &$mResult)
+	{
+		$oUser = isset($aArgs['UserId']) ? \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aArgs['UserId']) : null;
+		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+		{
+			$iUserGroupId = $oUser->{'CoreUserGroups::GroupId'};
+			if ($iUserGroupId !== $aArgs['GroupId'] && $iUserGroupId > 0)
+			{
+				$oGroup = \Aurora\Modules\CoreUserGroups\Module::Decorator()->GetGroup($iUserGroupId);
+				if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group && $oGroup->TenantId === 0)
+				{
+					// delete group if it was custom and no longer belong to user
+					\Aurora\Modules\CoreUserGroups\Module::Decorator()->DeleteGroups([$oGroup->EntityId]);
+				}				
+			}
+		}
+		
+		if ($aArgs['GroupId'] === -1) // new custom group
+		{
+			$aArgs['GroupId'] = \Aurora\Modules\CoreUserGroups\Module::Decorator()->CreateGroup(0, $this->i18N('LABEL_CUSTOM_GROUP_NAME'));
+		}
+	}
+	
 	/**
 	 * Applies capabilities for user.
 	 * @param array $aArgs
 	 * @param mixed $mResult
 	 */
-	public function onAfterSaveGroupsOfUser($aArgs, &$mResult)
+	public function onAfterUpdateUserGroup($aArgs, &$mResult)
 	{
 		if ($mResult)
 		{
+			$oGroup = \Aurora\Modules\CoreUserGroups\Module::Decorator()->GetGroup($aArgs['GroupId']);
+			if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group && $oGroup->TenantId === 0)
+			{
+				$oGroup->{self::GetName() . '::DataSavedInDb'} = true;
+				$oGroup->{self::GetName() . '::EmailSendLimitPerDay'} = $aArgs[self::GetName() . '::EmailSendLimitPerDay'];
+				$oGroup->{self::GetName() . '::MailSignature'} = $aArgs[self::GetName() . '::MailSignature'];
+				$oGroup->{self::GetName() . '::MailQuotaMb'} = $aArgs[self::GetName() . '::MailQuotaMb'];
+				$oGroup->{self::GetName() . '::FilesQuotaMb'} = $aArgs[self::GetName() . '::FilesQuotaMb'];
+				$oGroup->{self::GetName() . '::AllowMobileApps'} = $aArgs[self::GetName() . '::AllowMobileApps'];
+				$oGroup->{self::GetName() . '::BannerUrlMobile'} = $aArgs[self::GetName() . '::BannerUrlMobile'];
+				$oGroup->{self::GetName() . '::BannerUrlDesktop'} = $aArgs[self::GetName() . '::BannerUrlDesktop'];
+				$oGroup->{self::GetName() . '::BannerLink'} = $aArgs[self::GetName() . '::BannerLink'];
+				$oGroup->{self::GetName() . '::MaxAllowedActiveAliasCount'} = $aArgs[self::GetName() . '::MaxAllowedActiveAliasCount'];
+				$oGroup->{self::GetName() . '::AliasCreationIntervalDays'} = $aArgs[self::GetName() . '::AliasCreationIntervalDays'];
+				$oGroup->save();
+			}
 			$this->setUserListCapabilities([$aArgs['UserId']]);
 		}
 	}
@@ -918,7 +958,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oGroup = $oCoreUserGroupsDecorator->GetGroup($aArgs['Id']);
 			if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group)
 			{
-				$oGroup->{self::GetName() . '::DataSavedInDb'} = false;
+				$oGroup->{self::GetName() . '::DataSavedInDb'} = true;
 				$oGroup->{self::GetName() . '::EmailSendLimitPerDay'} = $aArgs[self::GetName() . '::EmailSendLimitPerDay'];
 				$oGroup->{self::GetName() . '::MailSignature'} = $aArgs[self::GetName() . '::MailSignature'];
 				$oGroup->{self::GetName() . '::MailQuotaMb'} = $aArgs[self::GetName() . '::MailQuotaMb'];

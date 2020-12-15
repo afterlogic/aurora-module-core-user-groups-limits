@@ -91,6 +91,33 @@ module.exports = function (oAppData) {
 						}
 					]
 				}]);
+				ModulesManager.run('AdminPanelWebclient', 'registerAdminPanelTab', [
+					function(resolve) {
+						require.ensure(
+							['modules/%ModuleName%/js/views/PerUserAdminSettingsView.js'],
+							function() {
+								resolve(require('modules/%ModuleName%/js/views/PerUserAdminSettingsView.js'));
+							},
+							"admin-bundle"
+						);
+					},
+					'user-groups-user',
+					TextUtils.i18n('COREUSERGROUPS/LABEL_SETTINGS_TAB_USERGROUPS')
+				]);
+				ModulesManager.run('AdminPanelWebclient', 'registerAdminPanelTabSection', [
+						function () {
+							return require('modules/%ModuleName%/js/views/LimitsHintAdminSettingsView.js');
+						},
+						'files'
+					]
+				);
+				ModulesManager.run('AdminPanelWebclient', 'registerAdminPanelTabSection', [
+						function () {
+							return require('modules/%ModuleName%/js/views/LimitsHintAdminSettingsView.js');
+						},
+						'mail-quota'
+					]
+				);
 			},
 			oResult = {}
 		;

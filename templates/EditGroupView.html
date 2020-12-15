@@ -8,6 +8,20 @@
 </div>
 <!-- ko if: !createMode() -->
 	<div class="row">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_MAIL_QUOTA_MB'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: mailQuotaMb, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row row_bottom_border">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_FILES_QUOTA_MB'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: filesQuotaMb, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row">
 		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_EMAIL_SEND_LIMIT_PER_DAY'}"></span>
 		<span class="value">
 			<input class="input" type="text" data-bind="value: emailSendLimitPerDay, valueUpdate: 'afterkeydown', 
@@ -22,27 +36,29 @@
 		</span>
 	</div>
 	<div class="row">
-		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_MAIL_QUOTA_MB'}"></span>
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_MAX_ACTIVE_ALIAS_COUNT'}"></span>
 		<span class="value">
-			<input class="input" type="text" data-bind="value: mailQuotaMb, valueUpdate: 'afterkeydown', 
+			<input class="input" type="text" data-bind="value: maxAllowedActiveAliasCount, valueUpdate: 'afterkeydown', 
+				onEnter: function () { saveEntity($parents, $root); }" />
+		</span>
+	</div>
+	<div class="row row_bottom_border">
+		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_ALIAS_CREATION_INTERVAL_DAYS'}"></span>
+		<span class="value">
+			<input class="input" type="text" data-bind="value: aliasCreationIntervalDays, valueUpdate: 'afterkeydown', 
 				onEnter: function () { saveEntity($parents, $root); }" />
 		</span>
 	</div>
 	<div class="row">
-		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_FILES_QUOTA_MB'}"></span>
 		<span class="value">
-			<input class="input" type="text" data-bind="value: filesQuotaMb, valueUpdate: 'afterkeydown', 
-				onEnter: function () { saveEntity($parents, $root); }" />
+			<label class="custom_checkbox" data-bind="css: {'checked': allowMobileApps}">
+				<span class="icon"></span>
+				<input type="checkbox" id="allowMobileApps" data-bind="checked: allowMobileApps" />
+			</label>
+			<label for="allowMobileApps" data-bind="i18n: {'key': '%MODULENAME%/LABEL_ALLOW_MOBILE_APPS'}"></label>
 		</span>
 	</div>
-	<div class="row">
-		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_ALLOW_MOBILE_APPS'}"></span>
-		<span class="value">
-			<input class="input" type="text" data-bind="value: allowMobileApps, valueUpdate: 'afterkeydown', 
-				onEnter: function () { saveEntity($parents, $root); }" />
-		</span>
-	</div>
-	<div class="row">
+	<div class="row row_top_border">
 		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_BANNER_URL_MOBILE'}"></span>
 		<span class="value">
 			<input class="input" type="text" data-bind="value: bannerUrlMobile, valueUpdate: 'afterkeydown', 
@@ -60,20 +76,6 @@
 		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_BANNER_LINK'}"></span>
 		<span class="value">
 			<input class="input" type="text" data-bind="value: bannerLink, valueUpdate: 'afterkeydown', 
-				onEnter: function () { saveEntity($parents, $root); }" />
-		</span>
-	</div>
-	<div class="row">
-		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_MAX_ACTIVE_ALIAS_COUNT'}"></span>
-		<span class="value">
-			<input class="input" type="text" data-bind="value: maxAllowedActiveAliasCount, valueUpdate: 'afterkeydown', 
-				onEnter: function () { saveEntity($parents, $root); }" />
-		</span>
-	</div>
-	<div class="row">
-		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_ALIAS_CREATION_INTERVAL_DAYS'}"></span>
-		<span class="value">
-			<input class="input" type="text" data-bind="value: aliasCreationIntervalDays, valueUpdate: 'afterkeydown', 
 				onEnter: function () { saveEntity($parents, $root); }" />
 		</span>
 	</div>
