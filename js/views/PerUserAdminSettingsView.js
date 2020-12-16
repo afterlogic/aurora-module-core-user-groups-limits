@@ -16,6 +16,7 @@ var
 	CAbstractSettingsFormView = ModulesManager.run('AdminPanelWebclient', 'getAbstractSettingsFormViewClass'),
 	
 	Cache = require('modules/%ModuleName%/js/Cache.js'),
+	Settings = require('modules/%ModuleName%/js/Settings.js'),
 	
 	GroupIdEnum = {
 		None: 0,
@@ -33,7 +34,7 @@ var
 */
 function CPerUserAdminSettingsView()
 {
-	CAbstractSettingsFormView.call(this, 'CoreUserGroups');
+	CAbstractSettingsFormView.call(this, Settings.UserGroupsServerModuleName);
 	
 	this.entityType = ko.observable('');
 	
@@ -125,7 +126,7 @@ function CPerUserAdminSettingsView()
 			this.currentUserGroupId(Types.pInt(oParams.Response.Result['CoreUserGroups::GroupId']));
 		}
 		
-		if (oParams.Request.Module === 'CoreUserGroups'
+		if (oParams.Request.Module === Settings.UserGroupsServerModuleName
 			&& oParams.Request.Method === 'AddToGroup'
 			&& _.indexOf(oParams.Request.Parameters.UsersIds, this.iUserId) !== -1
 			&& oParams.Response.Result)
@@ -150,7 +151,7 @@ function CPerUserAdminSettingsView()
 				'Id': this.currentUserGroupId()
 			};
 			Ajax.send(
-				'CoreUserGroups',
+				Settings.UserGroupsServerModuleName,
 				'GetGroup',
 				oParameters,
 				function (oResponse, oRequest) {
@@ -236,7 +237,7 @@ CPerUserAdminSettingsView.prototype.updateUserGroup = function()
 	}
 	
 	Ajax.send(
-		'CoreUserGroups',
+		Settings.UserGroupsServerModuleName,
 		'UpdateUserGroup',
 		oParameters,
 		function (oResponse, oRequest) {

@@ -2,6 +2,14 @@
 	<span class="label" data-bind="i18n: {'key': 'COREWEBCLIENT/LABEL_NAME'}"></span>
 	<span class="value">
 		<span data-bind="text: name, visible: !createMode()"></span>
+		<span data-bind="visible: !createMode() && isDefault()">
+			(<span data-bind="i18n: {'key': 'ADMINPANELWEBCLIENT/LABEL_DEFAULT'}"></span>)
+		</span>
+		<span class="buttons" data-bind="visible: !createMode() && !isDefault()" style="margin-left: 20px;">
+			<span class="button" data-bind="click: function () { askSetDefault($parents); }">
+				<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SET_DEFAULT'}"></span>
+			</span>
+		</span>
 		<input class="input" type="text" data-bind="value: name, valueUpdate: 'afterkeydown', visible: createMode, 
 			onEnter: function () { saveEntity($parents, $root); }" />
 	</span>

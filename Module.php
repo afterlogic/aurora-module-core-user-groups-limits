@@ -154,6 +154,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($oCoreUserGroupsDecorator && $oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
 			$oGroup = $oCoreUserGroupsDecorator->GetGroup($oUser->{'CoreUserGroups::GroupId'});
+			if (!($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group))
+			{
+				$oGroup = $oCoreUserGroupsDecorator->GetDefaultGroup($oUser->IdTenant);
+			}
 			$aAllSettings = $this->getAllSettingsOfGroup($oGroup);
 		}
 		return is_array($aAllSettings) && isset($aAllSettings[$sSettingName]) ? $aAllSettings[$sSettingName] : null;
@@ -163,7 +167,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 * Obtains all settings for group.
 	 * If group is specified and its settings are saved in DB, then obtains settings from DB.
 	 * If group is specified and its settings are not saved in DB, then obtains settings from config file by group name.
-	 * If group is not specified or there are no settings for the group name in config file, then obtains settings from config file for group named "Free".
+	 * If group is not specified or there are no settings for the group name in config file, then obtains settings from config file for the first group in the list.
 	 * @param \Aurora\Modules\CoreUserGroups\Classes\Group|null $oGroup
 	 * @return array|null
 	 */
@@ -193,10 +197,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 			if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group)
 			{
 				$iIndex = array_search($oGroup->Name, array_column($aGroupsLimits, 'GroupName'));
-			}
-			if ($iIndex === false)
-			{
-				$iIndex = array_search('Free', array_column($aGroupsLimits, 'GroupName'));
 			}
 			if ($iIndex === false)
 			{

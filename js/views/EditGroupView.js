@@ -14,7 +14,6 @@ var
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 	
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
-	AlertPopup = require('%PathToCoreWebclientModule%/js/popups/AlertPopup.js'),
 	ConfirmPopup = require('%PathToCoreWebclientModule%/js/popups/ConfirmPopup.js'),
 	
 	Settings = require('modules/%ModuleName%/js/Settings.js')
@@ -29,7 +28,12 @@ function CEditGroupView()
 	this.createMode = ko.computed(function () {
 		return this.id() === 0;
 	}, this);
+	this.tenantId = ko.observable(0);
 	this.name = ko.observable('');
+	this.isDefault = ko.observable(false);
+	this.allowDelete = ko.computed(function () {
+		return !this.isDefault();
+	}, this);
 	this.emailSendLimitPerDay = ko.observable(0);
 	this.mailSignature = ko.observable('');
 	this.mailQuotaMb = ko.observable(0);
@@ -79,7 +83,9 @@ CEditGroupView.prototype.getCurrentValues = function ()
 CEditGroupView.prototype.clearFields = function ()
 {
 	this.id(0);
+	this.tenantId(0);
 	this.name('');
+	this.isDefault(false);
 	this.emailSendLimitPerDay(0);
 	this.mailSignature('');
 	this.mailQuotaMb(0);
@@ -102,7 +108,9 @@ CEditGroupView.prototype.parse = function (iEntityId, oResult)
 	if (oResult)
 	{
 		this.id(iEntityId);
+		this.tenantId(Types.pInt(oResult.TenantId, 0));
 		this.name(Types.pString(oResult.Name, ''));
+		this.isDefault(Types.pBool(oResult.IsDefault, false));
 		this.emailSendLimitPerDay(Types.pInt(oResult['%ModuleName%::EmailSendLimitPerDay'], 0));
 		this.mailSignature(Types.pString(oResult['%ModuleName%::MailSignature'], ''));
 		this.mailQuotaMb(Types.pInt(oResult['%ModuleName%::MailQuotaMb'], 0));
@@ -176,6 +184,54 @@ CEditGroupView.prototype.saveEntity = function (aParents, oRoot)
 			oParent.save(oRoot);
 		}
 	});
+};
+
+/**
+ * Asks for confirmation to set the group as default.
+ * @param {array} aParents
+ */
+CEditGroupView.prototype.askSetDefault = function (aParents)
+{
+	Popups.showPopup(ConfirmPopup, [TextUtils.i18n('%MODULENAME%/CONFIRM_SET_DEFAULT'), 
+		function (bOk) {
+			if (bOk)
+			{
+				this.setDefault(aParents);
+			}
+		}.bind(this)
+	]);
+};
+
+/**
+ * Sets the group as default. After that requests group list.
+ * @param {array} aParents
+ */
+CEditGroupView.prototype.setDefault = function (aParents)
+{
+	Ajax.send(Settings.UserGroupsServerModuleName,
+		'ChangeDefaultGroup',
+		{
+			'TenantId': this.tenantId(),
+			'DefaultGroupId': this.id()
+		},
+		function (oResponse) {
+			if (oResponse.Result)
+			{
+				_.each(aParents, function (oParent) {
+					this.isDefault(true);
+					if (oParent && _.isFunction(oParent.currentEntitiesView) && _.isFunction(oParent.currentEntitiesView().requestEntities))
+					{
+						oParent.currentEntitiesView().requestEntities();
+					}
+				}.bind(this));
+			}
+			else
+			{
+				Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_ADD_NEW_RESERVED_NAME'));
+			}
+		},
+		this
+	);
 };
 
 module.exports = new CEditGroupView();
