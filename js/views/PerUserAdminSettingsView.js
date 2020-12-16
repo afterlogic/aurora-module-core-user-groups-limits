@@ -62,10 +62,15 @@ function CPerUserAdminSettingsView()
 	
 	this.groups = ko.computed(function () {
 		var oGroupsOptions = _.map(Cache.groups(), function (oGroup) {
+			var sText = oGroup.Name;
+			if (oGroup.IsDefault)
+			{
+				sText += ' (' + TextUtils.i18n('ADMINPANELWEBCLIENT/LABEL_DEFAULT') + ')';
+			}
 			return {
 				disabled: false,
 				value: oGroup.Id,
-				text: oGroup.Name
+				text: sText
 			};
 		});
 		oGroupsOptions.unshift({
