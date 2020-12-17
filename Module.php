@@ -24,7 +24,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('Mail::SendMessage::after', array($this, 'onAfterSendMessage'));
 		$this->subscribeEvent('Mail::CreateAccount::after', array($this, 'onAfterCreateAccount'));
 
-		$this->subscribeEvent('CoreUserGroups::DeleteGroups::after', array($this, 'onAfterRemoveDeleteGroups'));
 		$this->subscribeEvent('CoreUserGroups::RemoveUsersFromGroup::after', array($this, 'onAfterRemoveUsersFromGroup'));
 		$this->subscribeEvent('CoreUserGroups::AddToGroup::after', array($this, 'onAfterAddToGroup'));
 		$this->subscribeEvent('CoreUserGroups::UpdateUserGroup::before', array($this, 'onBeforeUpdateUserGroup'));
@@ -316,19 +315,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 	}
 
 	/**
-	 * Applies capabilities for users from deleted groups.
-	 * @param array $aArgs
-	 * @param mixed $mResult
-	 */
-	public function onAfterRemoveDeleteGroups(&$aArgs, &$mResult)
-	{
-		if (is_array($mResult) && !empty($mResult))
-		{
-			$this->setUserListCapabilities($mResult);
-		}
-	}
-
-	/**
 	 * Applies capabilities for users removed from groups.
 	 * @param array $aArgs
 	 * @param mixed $mResult
@@ -366,7 +352,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group && $oGroup->TenantId === 0)
 				{
 					// delete group if it was custom and no longer belong to user
-					\Aurora\Modules\CoreUserGroups\Module::Decorator()->DeleteGroups([$oGroup->EntityId]);
+					\Aurora\Modules\CoreUserGroups\Module::Decorator()->DeleteGroups($oGroup->TenantId, [$oGroup->EntityId]);
 				}				
 			}
 		}
