@@ -15,7 +15,7 @@ var
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 	CAbstractSettingsFormView = ModulesManager.run('AdminPanelWebclient', 'getAbstractSettingsFormViewClass'),
 	
-	Cache = require('modules/%ModuleName%/js/Cache.js'),
+	Cache = require('modules/CoreUserGroups/js/Cache.js'),
 	Settings = require('modules/%ModuleName%/js/Settings.js'),
 	
 	GroupIdEnum = {
@@ -128,7 +128,7 @@ function CPerUserAdminSettingsView()
 			&& oParams.Response.Result
 			&& oParams.Response.Result.EntityId === this.iUserId)
 		{
-			this.currentUserGroupId(Types.pInt(oParams.Response.Result['CoreUserGroups::GroupId']));
+			this.currentUserGroupId(Types.pInt(oParams.Response.Result[Settings.UserGroupsServerModuleName + '::GroupId']));
 		}
 		
 		if (oParams.Request.Module === Settings.UserGroupsServerModuleName
