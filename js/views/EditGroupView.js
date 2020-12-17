@@ -16,6 +16,7 @@ var
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 	ConfirmPopup = require('%PathToCoreWebclientModule%/js/popups/ConfirmPopup.js'),
 	
+	Cache = require('modules/CoreUserGroups/js/Cache.js'),
 	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 

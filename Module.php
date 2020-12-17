@@ -30,6 +30,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('CoreUserGroups::UpdateUserGroup::after', array($this, 'onAfterUpdateUserGroup'));
 		$this->subscribeEvent('CoreUserGroups::GetGroups::before', array($this, 'onBeforeGetGroups'));
 		$this->subscribeEvent('CoreUserGroups::CreateGroup::before', array($this, 'onBeforeCreateGroup'));
+		$this->subscribeEvent('CoreUserGroups::CreateGroup::after', array($this, 'onAfterCreateGroup'));
 
 		$this->subscribeEvent('CpanelIntegrator::CreateAlias::before', array($this, 'onBeforeCreateAlias'));
 		$this->subscribeEvent('CpanelIntegrator::AddNewAlias::after', array($this, 'onAfterCreateAlias'));
@@ -350,22 +351,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		if ($mResult)
 		{
-			$oGroup = \Aurora\Modules\CoreUserGroups\Module::Decorator()->GetGroup($aArgs['GroupId']);
-			if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group && $oGroup->TenantId === 0)
-			{
-				$oGroup->{self::GetName() . '::DataSavedInDb'} = true;
-				$oGroup->{self::GetName() . '::EmailSendLimitPerDay'} = $aArgs[self::GetName() . '::EmailSendLimitPerDay'];
-				$oGroup->{self::GetName() . '::MailSignature'} = $aArgs[self::GetName() . '::MailSignature'];
-				$oGroup->{self::GetName() . '::MailQuotaMb'} = $aArgs[self::GetName() . '::MailQuotaMb'];
-				$oGroup->{self::GetName() . '::FilesQuotaMb'} = $aArgs[self::GetName() . '::FilesQuotaMb'];
-				$oGroup->{self::GetName() . '::AllowMobileApps'} = $aArgs[self::GetName() . '::AllowMobileApps'];
-				$oGroup->{self::GetName() . '::BannerUrlMobile'} = $aArgs[self::GetName() . '::BannerUrlMobile'];
-				$oGroup->{self::GetName() . '::BannerUrlDesktop'} = $aArgs[self::GetName() . '::BannerUrlDesktop'];
-				$oGroup->{self::GetName() . '::BannerLink'} = $aArgs[self::GetName() . '::BannerLink'];
-				$oGroup->{self::GetName() . '::MaxAllowedActiveAliasCount'} = $aArgs[self::GetName() . '::MaxAllowedActiveAliasCount'];
-				$oGroup->{self::GetName() . '::AliasCreationIntervalDays'} = $aArgs[self::GetName() . '::AliasCreationIntervalDays'];
-				$oGroup->save();
-			}
 			$this->setUserListCapabilities([$aArgs['UserId']]);
 		}
 	}
@@ -463,6 +448,34 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($oTenant && $oTenant->{self::GetName() . '::IsBusiness'})
 		{
 			throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_NOT_ALLOWED_HAVE_GROUPS'));
+		}
+	}
+
+	public function onAfterCreateGroup($aArgs, &$mResult)
+	{
+		if (isset($aArgs['TenantId']) && is_int($mResult))
+		{
+			$oGroup = \Aurora\Modules\CoreUserGroups\Module::Decorator()->GetGroup($mResult);
+			$oDefaultGroup = \Aurora\Modules\CoreUserGroups\Module::Decorator()->GetDefaultGroup($aArgs['TenantId']);
+			$aAllSettings = $this->getAllSettingsOfGroup($oDefaultGroup);
+			if ($oDefaultGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group && $oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group)
+			{
+				$oGroup->{self::GetName() . '::DataSavedInDb'} = true;
+				$oGroup->{self::GetName() . '::EmailSendLimitPerDay'} = $aAllSettings['EmailSendLimitPerDay'];
+				$oGroup->{self::GetName() . '::MailSignature'} = $aAllSettings['MailSignature'];
+				$oGroup->{self::GetName() . '::MailQuotaMb'} = $aAllSettings['MailQuotaMb'];
+				$oGroup->{self::GetName() . '::FilesQuotaMb'} = $aAllSettings['FilesQuotaMb'];
+				$oGroup->{self::GetName() . '::AllowMobileApps'} = $aAllSettings['AllowMobileApps'];
+				if ($oGroup->TenantId !== 0) // not custom group
+				{
+					$oGroup->{self::GetName() . '::BannerUrlMobile'} = $aAllSettings['BannerUrlMobile'];
+					$oGroup->{self::GetName() . '::BannerUrlDesktop'} = $aAllSettings['BannerUrlDesktop'];
+					$oGroup->{self::GetName() . '::BannerLink'} = $aAllSettings['BannerLink'];
+				}
+				$oGroup->{self::GetName() . '::MaxAllowedActiveAliasCount'} = $aAllSettings['MaxAllowedActiveAliasCount'];
+				$oGroup->{self::GetName() . '::AliasCreationIntervalDays'} = $aAllSettings['AliasCreationIntervalDays'];
+				$oGroup->save();
+			}
 		}
 	}
 

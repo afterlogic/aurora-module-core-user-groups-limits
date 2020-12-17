@@ -183,28 +183,21 @@ CPerUserAdminSettingsView.prototype.ViewTemplate = '%ModuleName%_PerUserAdminSet
 
 CPerUserAdminSettingsView.prototype.getCustomGroupData = function()
 {
-	var oFreeGroup = _.find(Cache.groups(), function (oGroup) {
-		return oGroup.Name === 'Free';
-	}.bind(this));
-	if (oFreeGroup)
-	{
-		return {
-			Id: oCustomGroupTemplate.Id,
-			Name: oCustomGroupTemplate.Name,
-			TenantId: oCustomGroupTemplate.TenantId,
-			'%ModuleName%::EmailSendLimitPerDay': oFreeGroup['%ModuleName%::EmailSendLimitPerDay'],
-			'%ModuleName%::MailSignature': oFreeGroup['%ModuleName%::MailSignature'],
-			'%ModuleName%::MailQuotaMb': oFreeGroup['%ModuleName%::MailQuotaMb'],
-			'%ModuleName%::FilesQuotaMb': oFreeGroup['%ModuleName%::FilesQuotaMb'],
-			'%ModuleName%::AllowMobileApps': oFreeGroup['%ModuleName%::AllowMobileApps'],
-			'%ModuleName%::BannerUrlMobile': '',
-			'%ModuleName%::BannerUrlDesktop': '',
-			'%ModuleName%::BannerLink': '',
-			'%ModuleName%::MaxAllowedActiveAliasCount': oFreeGroup['%ModuleName%::MaxAllowedActiveAliasCount'],
-			'%ModuleName%::AliasCreationIntervalDays': oFreeGroup['%ModuleName%::AliasCreationIntervalDays']
-		};
-	}
-	return null;
+	return {
+		Id: oCustomGroupTemplate.Id,
+		Name: oCustomGroupTemplate.Name,
+		TenantId: oCustomGroupTemplate.TenantId,
+		'%ModuleName%::EmailSendLimitPerDay': 0,
+		'%ModuleName%::MailSignature': '',
+		'%ModuleName%::MailQuotaMb': 0,
+		'%ModuleName%::FilesQuotaMb': 0,
+		'%ModuleName%::AllowMobileApps': false,
+		'%ModuleName%::BannerUrlMobile': '',
+		'%ModuleName%::BannerUrlDesktop': '',
+		'%ModuleName%::BannerLink': '',
+		'%ModuleName%::MaxAllowedActiveAliasCount': 0,
+		'%ModuleName%::AliasCreationIntervalDays': 0
+	};
 };
 
 /**
