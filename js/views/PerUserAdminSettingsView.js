@@ -183,20 +183,23 @@ CPerUserAdminSettingsView.prototype.ViewTemplate = '%ModuleName%_PerUserAdminSet
 
 CPerUserAdminSettingsView.prototype.getCustomGroupData = function()
 {
+	var oDefaultGroup = _.find(Cache.groups(), function (oGroup) {
+		return oGroup.IsDefault;
+	});
 	return {
 		Id: oCustomGroupTemplate.Id,
 		Name: oCustomGroupTemplate.Name,
 		TenantId: oCustomGroupTemplate.TenantId,
-		'%ModuleName%::EmailSendLimitPerDay': 0,
-		'%ModuleName%::MailSignature': '',
-		'%ModuleName%::MailQuotaMb': 0,
-		'%ModuleName%::FilesQuotaMb': 0,
-		'%ModuleName%::AllowMobileApps': false,
+		'%ModuleName%::EmailSendLimitPerDay': oDefaultGroup ? oDefaultGroup['%ModuleName%::EmailSendLimitPerDay'] : 0,
+		'%ModuleName%::MailSignature': oDefaultGroup ? oDefaultGroup['%ModuleName%::MailSignature'] : '',
+		'%ModuleName%::MailQuotaMb': oDefaultGroup ? oDefaultGroup['%ModuleName%::MailQuotaMb'] : 0,
+		'%ModuleName%::FilesQuotaMb': oDefaultGroup ? oDefaultGroup['%ModuleName%::FilesQuotaMb'] : 0,
+		'%ModuleName%::AllowMobileApps': oDefaultGroup ? oDefaultGroup['%ModuleName%::AllowMobileApps'] : false,
 		'%ModuleName%::BannerUrlMobile': '',
 		'%ModuleName%::BannerUrlDesktop': '',
 		'%ModuleName%::BannerLink': '',
-		'%ModuleName%::MaxAllowedActiveAliasCount': 0,
-		'%ModuleName%::AliasCreationIntervalDays': 0
+		'%ModuleName%::MaxAllowedActiveAliasCount': oDefaultGroup ? oDefaultGroup['%ModuleName%::MaxAllowedActiveAliasCount'] : 0,
+		'%ModuleName%::AliasCreationIntervalDays': oDefaultGroup ? oDefaultGroup['%ModuleName%::AliasCreationIntervalDays'] : 0
 	};
 };
 
