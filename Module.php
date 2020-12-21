@@ -963,6 +963,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$oGroup->{self::GetName() . '::MaxAllowedActiveAliasCount'} = $aArgs[self::GetName() . '::MaxAllowedActiveAliasCount'];
 				$oGroup->{self::GetName() . '::AliasCreationIntervalDays'} = $aArgs[self::GetName() . '::AliasCreationIntervalDays'];
 				$mResult = $mResult && $oGroup->save();
+
+				$aGroupUsers = \Aurora\Modules\CoreUserGroups\Module::Decorator()->GetGroupUsers($oGroup->EntityId, $oGroup->TenantId);
+				$aGroupUsersIds = array_map(function ($oUser) {
+					return $oUser['Id'];
+				}, $aGroupUsers);
+				$this->setUserListCapabilities($aGroupUsersIds);
 			}
 		}
 	}
