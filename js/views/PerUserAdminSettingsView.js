@@ -249,6 +249,7 @@ CPerUserAdminSettingsView.prototype.updateUserGroup = function()
 			}
 			else
 			{
+				this.currentUserGroupId(oResponse.Result);
 				Screens.showReport(TextUtils.i18n('COREWEBCLIENT/REPORT_SETTINGS_UPDATE_SUCCESS'));
 			}
 		},

@@ -324,37 +324,49 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oUser = isset($aArgs['UserId']) ? \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aArgs['UserId']) : null;
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
+			$oCustomUserGroup = null;
 			$iUserGroupId = $oUser->{'CoreUserGroups::GroupId'};
 			if ($iUserGroupId > 0 && $iUserGroupId !== $aArgs['GroupId'])
 			{
 				$oGroup = \Aurora\Modules\CoreUserGroups\Module::Decorator()->GetGroup($iUserGroupId);
-				if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group && $oGroup->TenantId === 0)
+				if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group && $oGroup->TenantId === 0) // custom group
 				{
 					// delete group if it was custom and no longer belong to user
 					\Aurora\Modules\CoreUserGroups\Module::Decorator()->DeleteGroups($oGroup->TenantId, [$oGroup->EntityId]);
 				}
 			}
-			else if ($iUserGroupId > 0 && $iUserGroupId === $aArgs['GroupId'])
+			
+			if ($iUserGroupId > 0 && $iUserGroupId === $aArgs['GroupId'])
 			{
 				$oGroup = \Aurora\Modules\CoreUserGroups\Module::Decorator()->GetGroup($iUserGroupId);
 				if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group && $oGroup->TenantId === 0) // custom group
 				{
-					$oGroup->{self::GetName() . '::DataSavedInDb'} = true;
-					$oGroup->{self::GetName() . '::EmailSendLimitPerDay'} = $aArgs[self::GetName() . '::EmailSendLimitPerDay'];
-					$oGroup->{self::GetName() . '::MailSignature'} = $aArgs[self::GetName() . '::MailSignature'];
-					$oGroup->{self::GetName() . '::MailQuotaMb'} = $aArgs[self::GetName() . '::MailQuotaMb'];
-					$oGroup->{self::GetName() . '::FilesQuotaMb'} = $aArgs[self::GetName() . '::FilesQuotaMb'];
-					$oGroup->{self::GetName() . '::AllowMobileApps'} = $aArgs[self::GetName() . '::AllowMobileApps'];
-					$oGroup->{self::GetName() . '::MaxAllowedActiveAliasCount'} = $aArgs[self::GetName() . '::MaxAllowedActiveAliasCount'];
-					$oGroup->{self::GetName() . '::AliasCreationIntervalDays'} = $aArgs[self::GetName() . '::AliasCreationIntervalDays'];
-					$oGroup->save();
+					$oCustomUserGroup = $oGroup;
 				}
 			}
-		}
 		
-		if ($aArgs['GroupId'] === -1) // new custom group
-		{
-			$aArgs['GroupId'] = \Aurora\Modules\CoreUserGroups\Module::Decorator()->CreateGroup(0, $this->i18N('LABEL_CUSTOM_GROUP_NAME'));
+			if ($aArgs['GroupId'] === -1) // new custom group
+			{
+				$aArgs['GroupId'] = \Aurora\Modules\CoreUserGroups\Module::Decorator()->CreateGroup(0, $this->i18N('LABEL_CUSTOM_GROUP_NAME'));
+				$oGroup = \Aurora\Modules\CoreUserGroups\Module::Decorator()->GetGroup($aArgs['GroupId']);
+				if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group && $oGroup->TenantId === 0) // custom group
+				{
+					$oCustomUserGroup = $oGroup;
+				}
+			}
+			
+			if ($oCustomUserGroup !== null)
+			{
+				$oCustomUserGroup->{self::GetName() . '::DataSavedInDb'} = true;
+				$oCustomUserGroup->{self::GetName() . '::EmailSendLimitPerDay'} = $aArgs[self::GetName() . '::EmailSendLimitPerDay'];
+				$oCustomUserGroup->{self::GetName() . '::MailSignature'} = $aArgs[self::GetName() . '::MailSignature'];
+				$oCustomUserGroup->{self::GetName() . '::MailQuotaMb'} = $aArgs[self::GetName() . '::MailQuotaMb'];
+				$oCustomUserGroup->{self::GetName() . '::FilesQuotaMb'} = $aArgs[self::GetName() . '::FilesQuotaMb'];
+				$oCustomUserGroup->{self::GetName() . '::AllowMobileApps'} = $aArgs[self::GetName() . '::AllowMobileApps'];
+				$oCustomUserGroup->{self::GetName() . '::MaxAllowedActiveAliasCount'} = $aArgs[self::GetName() . '::MaxAllowedActiveAliasCount'];
+				$oCustomUserGroup->{self::GetName() . '::AliasCreationIntervalDays'} = $aArgs[self::GetName() . '::AliasCreationIntervalDays'];
+				$oCustomUserGroup->save();
+			}
 		}
 	}
 	
