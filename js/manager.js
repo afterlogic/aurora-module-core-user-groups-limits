@@ -43,7 +43,8 @@ module.exports = function (oAppData) {
 			};
 		}
 	}
-	else {
+	else
+	{
 		var
 			fGetHeaderItem = function () {
 				return {
@@ -97,6 +98,13 @@ module.exports = function (oAppData) {
 						'mail-quota'
 					]
 				);
+
+				ModulesManager.run('AdminPanelWebclient', 'registerAdminPanelTabSection', [
+					function () {
+						return require('modules/%ModuleName%/js/views/BusinessTenantLimitsSettingsView.js');
+					},
+					'common'
+				]);
 			},
 			oResult = {}
 		;

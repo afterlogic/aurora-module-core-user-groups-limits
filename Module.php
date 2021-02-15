@@ -87,10 +87,21 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('CoreUserGroups::Group::ToResponseArray', array($this, 'onGroupToResponseArray'));
 		$this->subscribeEvent('CoreUserGroups::UpdateGroup::after', array($this, 'onAfterUpdateGroup'));
 
+		$aBusinessTenantLimits = $this->getConfig('BusinessTenantLimits', []);
+		if (is_array($aBusinessTenantLimits) && count($aBusinessTenantLimits) > 0 && is_array($aBusinessTenantLimits[0]))
+		{
+			$aBusinessTenantLimits = $aBusinessTenantLimits[0];
+		}
+		else
+		{
+			$aBusinessTenantLimits = [];
+		}
 		\Aurora\Modules\Core\Classes\Tenant::extend(
 			self::GetName(),
 			[
 				'IsBusiness' => array('bool', false),
+				'AliasesCount' => array('int', isset($aBusinessTenantLimits['AliasesCount']) ? $aBusinessTenantLimits['AliasesCount'] : 0),
+				'EmailAccountsCount' => array('int', isset($aBusinessTenantLimits['EmailAccountsCount']) ? $aBusinessTenantLimits['EmailAccountsCount'] : 0),
 			]
 		);
 
@@ -410,10 +421,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($iTenantId);
 		if ($oTenant && $oTenant->{self::GetName() . '::IsBusiness'})
 		{//Business tenant
-			$iAliasesCount = $this->getBusinessTenantLimits('AliasesCount');
-			if (is_array($aArgs['DomainAliases']) && count($aArgs['DomainAliases']) >= $iAliasesCount)
+			$iAliasesCountLimit = $this->getBusinessTenantLimits($oTenant, 'AliasesCount');
+			if (is_array($aArgs['DomainAliases']) && count($aArgs['DomainAliases']) >= $iAliasesCountLimit)
 			{
-				throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_ALIASES_LIMIT'));
+				throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_ALIASES_LIMIT_PLURAL', ['COUNT' => $iAliasesCountLimit], $iAliasesCountLimit));
 			}
 		}
 		else
@@ -690,6 +701,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			$mResult[self::GetName() . '::IsBusiness'] = $oTenant->{self::GetName() . '::IsBusiness'};
 			$mResult[self::GetName() . '::EnableGroupware'] = $this->GetGroupwareState($oTenant->EntityId);
+			$mResult[self::GetName() . '::AliasesCount'] = $oTenant->{self::GetName() . '::AliasesCount'};
+			$mResult[self::GetName() . '::EmailAccountsCount'] = $oTenant->{self::GetName() . '::EmailAccountsCount'};
+			$mResult['Mail::TenantSpaceLimitMb'] = $oTenant->{'Mail::TenantSpaceLimitMb'};
+			$mResult['Files::TenantSpaceLimitMb'] = $oTenant->{'Files::TenantSpaceLimitMb'};
 		}
 	}
 
@@ -712,7 +727,16 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 
-	protected function getBusinessTenantLimits($sSettingName)
+	protected function getBusinessTenantLimits($oTenant, $sSettingName)
+	{
+		if ($oTenant && $oTenant->{self::GetName() . '::IsBusiness'})
+		{
+			return $oTenant->{self::GetName() . '::' . $sSettingName};
+		}
+		return $this->getBusinessTenantLimitsFromConfig($sSettingName);
+	}
+
+	protected function getBusinessTenantLimitsFromConfig($sSettingName)
 	{
 		$aBusinessTenantLimitsConfig = $this->getConfig('BusinessTenantLimits', []);
 		$aBusinessTenantLimits = is_array($aBusinessTenantLimitsConfig) && count($aBusinessTenantLimitsConfig) > 0 ? $aBusinessTenantLimitsConfig[0] : [];
@@ -725,7 +749,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oTenant = \Aurora\Modules\Core\Module::Decorator()->getTenantsManager()->getTenantById($iTenantId);
 		if ($oTenant && $oTenant->{self::GetName() . '::IsBusiness'})
 		{
-			$iEmailAccountsLimit = $this->getBusinessTenantLimits('EmailAccountsCount');
+			$iEmailAccountsLimit = $this->getBusinessTenantLimits($oTenant, 'EmailAccountsCount');
 			if (is_int($iEmailAccountsLimit) && $iEmailAccountsLimit > 0)
 			{
 				$oEavManager = \Aurora\System\Managers\Eav::getInstance();
@@ -733,7 +757,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$iUserCount = $oEavManager->getEntitiesCount(\Aurora\Modules\Core\Classes\User::class, $aFilters);
 				if ($iUserCount >= $iEmailAccountsLimit)
 				{
-					throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_EMAIL_ACCOUNTS_LIMIT'));
+					throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_EMAIL_ACCOUNTS_LIMIT_PLURAL', ['COUNT' => $iEmailAccountsLimit], $iEmailAccountsLimit));
 				}
 			}
 		}
@@ -887,7 +911,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					if ($oTenant->{self::GetName() . '::IsBusiness'})
 					{
 						$oFilesModule = \Aurora\Api::GetModule('Files');
-						$iFilesStorageQuotaMb = $this->getBusinessTenantLimits('FilesStorageQuotaMb');
+						$iFilesStorageQuotaMb = $this->getBusinessTenantLimitsFromConfig('FilesStorageQuotaMb');
 						if ($oFilesModule)
 						{
 							$oTenant->{'Files::UserSpaceLimitMb'} = $oFilesModule->getConfig('UserSpaceLimitMb');
@@ -897,7 +921,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 							$aAttributesToSave[] = 'Files::TenantSpaceLimitMb';
 						}
 
-						$iMailStorageQuotaMb = $this->getBusinessTenantLimits('MailStorageQuotaMb');
+						$iMailStorageQuotaMb = $this->getBusinessTenantLimitsFromConfig('MailStorageQuotaMb');
 						if (is_int($iMailStorageQuotaMb))
 						{
 							$oTenant->{'Mail::TenantSpaceLimitMb'} = $iMailStorageQuotaMb;
@@ -1037,6 +1061,41 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		return $aSettings;
+	}
+
+	public function UpdateBusinessTenantLimits($TenantId, $AliasesCount, $EmailAccountsCount, $MailStorageQuotaMb, $FilesStorageQuotaMb)
+	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+
+		$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($TenantId);
+		if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant && $oTenant->{self::GetName() . '::IsBusiness'})
+		{
+			$aAttributesToSave = [];
+			if (is_int($AliasesCount))
+			{
+				$oTenant->{self::GetName() . '::AliasesCount'} = $AliasesCount;
+				$aAttributesToSave[] = self::GetName() . '::AliasesCount';
+			}
+			if (is_int($EmailAccountsCount))
+			{
+				$oTenant->{self::GetName() . '::EmailAccountsCount'} = $EmailAccountsCount;
+				$aAttributesToSave[] = self::GetName() . '::EmailAccountsCount';
+			}
+			if (is_int($MailStorageQuotaMb))
+			{
+				$oTenant->{'Mail::TenantSpaceLimitMb'} = $MailStorageQuotaMb;
+				$aAttributesToSave[] = 'Mail::TenantSpaceLimitMb';
+			}
+			if (is_int($FilesStorageQuotaMb))
+			{
+				$oTenant->{'Files::TenantSpaceLimitMb'} = $FilesStorageQuotaMb;
+				$aAttributesToSave[] = 'Files::TenantSpaceLimitMb';
+			}
+			$oTenant->saveAttributes($aAttributesToSave); // method doesn't return true
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
