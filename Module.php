@@ -1081,17 +1081,18 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$oTenant->{self::GetName() . '::EmailAccountsCount'} = $EmailAccountsCount;
 				$aAttributesToSave[] = self::GetName() . '::EmailAccountsCount';
 			}
+			if (!empty($aAttributesToSave))
+			{
+				$oTenant->saveAttributes($aAttributesToSave);
+			}
 			if (is_int($MailStorageQuotaMb))
 			{
-				$oTenant->{'Mail::TenantSpaceLimitMb'} = $MailStorageQuotaMb;
-				$aAttributesToSave[] = 'Mail::TenantSpaceLimitMb';
+				\Aurora\Modules\Mail\Module::Decorator()->UpdateEntitySpaceLimits('Tenant', 0, $TenantId, $MailStorageQuotaMb);
 			}
 			if (is_int($FilesStorageQuotaMb))
 			{
-				$oTenant->{'Files::TenantSpaceLimitMb'} = $FilesStorageQuotaMb;
-				$aAttributesToSave[] = 'Files::TenantSpaceLimitMb';
+				\Aurora\Modules\Files\Module::Decorator()->UpdateSettingsForEntity('Tenant', $TenantId, null, $FilesStorageQuotaMb);
 			}
-			$oTenant->saveAttributes($aAttributesToSave); // method doesn't return true
 			return true;
 		}
 
