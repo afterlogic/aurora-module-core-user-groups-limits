@@ -5,7 +5,7 @@
 </a>
 <!-- /ko -->
 <!-- ko if: sLink === '' -->
-<span class="item banner">
+<span class="item banner" data-bind="visible: bShowTitle || sUrl !== ''">
 	<img data-bind="visible: sUrl !== '', attr: {'src': sUrl}" />
 	<span class="link" data-bind="visible: bShowTitle, i18n: {'key': '%MODULENAME%/UPRGADE_NOW'}"></span>
 </span>
