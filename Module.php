@@ -46,7 +46,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->subscribeEvent('Files::GetSettingsForEntity::after', array($this, 'onAfterGetSettingsForEntity'));
 
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User)
+		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Models\User)
 		{
 			if ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)
 			{
@@ -137,7 +137,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$sAccountName = \MailSo\Base\Utils::GetAccountNameFromEmail($sEmail);
 		$sDomain = \MailSo\Base\Utils::GetDomainFromEmail($sEmail);
-		$aDomainObjects = \Aurora\System\Api::GetModuleDecorator('MailDomains')->getDomainsManager()->getFullDomainsList();
+		$aDomainObjects = \Aurora\System\Api::GetModuleDecorator('MailDomains')->getDomainsManager()->getFullDomainsList()->toArray();
 		$aDomains = array_map(function ($oDomain) {
 			return $oDomain->Name;
 		}, $aDomainObjects);
@@ -161,7 +161,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$aAllSettings = null;
 		$oCoreUserGroupsDecorator = \Aurora\Modules\CoreUserGroups\Module::Decorator();
 		$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($iUserId);
-		if ($oCoreUserGroupsDecorator && $oUser instanceof \Aurora\Modules\Core\Classes\User)
+		if ($oCoreUserGroupsDecorator && $oUser instanceof \Aurora\Modules\Core\Models\User)
 		{
 			$oGroup = $oCoreUserGroupsDecorator->GetGroup($oUser->{'CoreUserGroups::GroupId'});
 			if (!($oGroup instanceof \Aurora\Modules\CoreUserGroups\Classes\Group))
@@ -223,17 +223,17 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	protected function isTodayEmailSentDate($oUser)
 	{
-		return $oUser instanceof \Aurora\Modules\Core\Classes\User
+		return $oUser instanceof \Aurora\Modules\Core\Models\User
 				&& ($oUser->{self::GetName() . '::EmailSentDate'} === date('Y-m-d')
 				|| $oUser->{self::GetName() . '::EmailSentDate'} === date('Y-m-d') . ' 00:00:00');
 	}
 
 	protected function isUserNotFromBusinessTenant($oUser)
 	{
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+		if ($oUser instanceof \Aurora\Modules\Core\Models\User)
 		{
 			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($oUser->IdTenant);
-			if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant && !$oTenant->{self::GetName() . '::IsBusiness'})
+			if ($oTenant instanceof \Aurora\Modules\Core\Models\Tenant && !$oTenant->{self::GetName() . '::IsBusiness'})
 			{
 				return true;
 			}
@@ -253,7 +253,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			if ($this->isTodayEmailSentDate($oAuthenticatedUser))
 			{
-				$iEmailSendLimitPerDay = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'EmailSendLimitPerDay');
+				$iEmailSendLimitPerDay = $this->getGroupSetting($oAuthenticatedUser->Id, 'EmailSendLimitPerDay');
 
 				if ($oAuthenticatedUser->{self::GetName() . '::EmailSentCount'} >= $iEmailSendLimitPerDay)
 				{
@@ -261,7 +261,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				}
 			}
 
-			$sMailSignature = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'MailSignature');
+			$sMailSignature = $this->getGroupSetting($oAuthenticatedUser->Id, 'MailSignature');
 			if (is_string($sMailSignature) && $sMailSignature !== '')
 			{
 				$aArgs['Text'] .= ($aArgs['IsHtml'] ? '<br />' : "\r\n") . $sMailSignature;
@@ -333,7 +333,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function onBeforeUpdateUserGroup(&$aArgs, &$mResult)
 	{
 		$oUser = isset($aArgs['UserId']) ? \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aArgs['UserId']) : null;
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+		if ($oUser instanceof \Aurora\Modules\Core\Models\User)
 		{
 			$oCustomUserGroup = null;
 			$iUserGroupId = $oUser->{'CoreUserGroups::GroupId'};
@@ -430,9 +430,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 		else
 		{//not Business tenant
 			$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aArgs['UserId']);
-			$iMaxAllowedActiveAliasCount = $this->getGroupSetting($oUser->EntityId, 'MaxAllowedActiveAliasCount');
+			$iMaxAllowedActiveAliasCount = $this->getGroupSetting($oUser->Id, 'MaxAllowedActiveAliasCount');
 			//how many days must pass since the user is allowed to create an alias again (once the user hit MaxAllowedActiveAliasCount limit)
-			$iAliasCreationIntervalDays = $this->getGroupSetting($oUser->EntityId, 'AliasCreationIntervalDays');
+			$iAliasCreationIntervalDays = $this->getGroupSetting($oUser->Id, 'AliasCreationIntervalDays');
 			$bLimitedExceeded = true;
 			$iActualAliasesCount = is_array($aArgs['UserAliases']) ? count($aArgs['UserAliases']) : 0;
 			$dLastAliasCreationDatel = new \DateTime($oUser->{self::GetName() . '::LastAliasCreationDate'}, new \DateTimeZone('UTC'));
@@ -461,7 +461,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($this->isUserNotFromBusinessTenant($oUser))
 		{
 			$oCpanelIntegratorDecorator = \Aurora\System\Api::GetModuleDecorator('CpanelIntegrator');
-			$aGetAliasesResult = $oCpanelIntegratorDecorator ? $oCpanelIntegratorDecorator->GetAliases($oUser->EntityId) : [];
+			$aGetAliasesResult = $oCpanelIntegratorDecorator ? $oCpanelIntegratorDecorator->GetAliases($oUser->Id) : [];
 			$iActualAliasesCount = isset($aGetAliasesResult['Aliases']) ? count($aGetAliasesResult['Aliases']) : 0;
 			$oUser->{self::GetName() . '::TotalAliasCount'} = $iActualAliasesCount;
 			$dCurrentDate = new \DateTime('now', new \DateTimeZone('UTC'));
@@ -530,7 +530,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$aUsers = [];
 		if ($oCoreDecorator && !empty($aUsersIds))
 		{
-			$aUsers = $oEavManager->getEntities(\Aurora\Modules\Core\Classes\User::class, [], 0, 0, $aFilters, 'PublicId', \Aurora\System\Enums\SortOrder::ASC);
+			$aUsers = $oEavManager->getEntities(\Aurora\Modules\Core\Models\User::class, [], 0, 0, $aFilters, 'PublicId', \Aurora\System\Enums\SortOrder::ASC);
 		}
 
 		foreach ($aUsers as $oUser)
@@ -541,20 +541,20 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	/**
 	 * Applies capabilities for user.
-	 * @param \Aurora\Modules\Core\Classes\User $oUser
+	 * @param \Aurora\Modules\Core\Models\User $oUser
 	 */
 	protected function setUserCapabilities($oUser)
 	{
 		if ($this->isUserNotFromBusinessTenant($oUser))
 		{
-			$iMailQuotaMb = (int) $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
-			\Aurora\Modules\Mail\Module::Decorator()->UpdateEntitySpaceLimits('User', $oUser->EntityId, $oUser->IdTenant, null, $iMailQuotaMb);
+			$iMailQuotaMb = (int) $this->getGroupSetting($oUser->Id, 'MailQuotaMb');
+			\Aurora\Modules\Mail\Module::Decorator()->UpdateEntitySpaceLimits('User', $oUser->Id, $oUser->IdTenant, null, $iMailQuotaMb);
 
 			$oFilesDecorator = \Aurora\Modules\Files\Module::Decorator();
-			$iFilesQuotaMb = $this->getGroupSetting($oUser->EntityId, 'FilesQuotaMb');
+			$iFilesQuotaMb = $this->getGroupSetting($oUser->Id, 'FilesQuotaMb');
 			if ($oFilesDecorator && is_int($iFilesQuotaMb))
 			{
-				$oFilesDecorator->UpdateUserSpaceLimit($oUser->EntityId, $iFilesQuotaMb);
+				$oFilesDecorator->UpdateUserSpaceLimit($oUser->Id, $iFilesQuotaMb);
 			}
 		}
 	}
@@ -563,10 +563,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$bState = false;
 		$oAuthenticatedUser = \Aurora\Api::getAuthenticatedUser();
-		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User && ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin || ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin && $oAuthenticatedUser->IdTenant === $TenantId)))
+		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Models\User && ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin || ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin && $oAuthenticatedUser->IdTenant === $TenantId)))
 		{
 			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($TenantId);
-			if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
+			if ($oTenant instanceof \Aurora\Modules\Core\Models\Tenant)
 			{
 				$aDisabledModules = $oTenant->getDisabledModules();
 				if (count($aDisabledModules) === 0)
@@ -586,7 +586,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin || ($oAuthenticatedUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin && $oAuthenticatedUser->IdTenant === $TenantId))
 		{
 			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($TenantId);
-			if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
+			if ($oTenant instanceof \Aurora\Modules\Core\Models\Tenant)
 			{
 				if ($EnableGroupware)
 				{
@@ -610,12 +610,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function onBeforeRunEntry(&$aArgs, &$mResult)
 	{
 		$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User
+		if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Models\User
 				&& $oAuthenticatedUser->isNormalOrTenant()
 				&& $this->isUserNotFromBusinessTenant($oAuthenticatedUser) && isset($aArgs['EntryName']) && strtolower($aArgs['EntryName']) === 'api')
 		{
 			$sXClientHeader = (string) \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
-			$bAllowMobileApps = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'AllowMobileApps');
+			$bAllowMobileApps = $this->getGroupSetting($oAuthenticatedUser->Id, 'AllowMobileApps');
 			if (strtolower($sXClientHeader) !== 'webclient' && (!is_bool($bAllowMobileApps) || !$bAllowMobileApps))
 			{
 				$mResult = \Aurora\System\Managers\Response::GetJsonFromObject(
@@ -642,12 +642,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($mResult && is_array($mResult) && isset($mResult['token']))
 		{
 			$oUser = \Aurora\System\Api::getUserById((int) $mResult['id']);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant()
+			if ($oUser instanceof \Aurora\Modules\Core\Models\User && $oUser->isNormalOrTenant()
 				&& $this->isUserNotFromBusinessTenant($oUser))
 			{
 				$sXClientHeader = (string) \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
 				\Aurora\Api::skipCheckUserRole(true);
-				$bAllowMobileApps = $this->getGroupSetting($oUser->EntityId, 'AllowMobileApps');
+				$bAllowMobileApps = $this->getGroupSetting($oUser->Id, 'AllowMobileApps');
 				\Aurora\Api::skipCheckUserRole(false);
 				if (strtolower($sXClientHeader) !== 'webclient' && (!is_bool($bAllowMobileApps) || !$bAllowMobileApps))
 				{
@@ -669,7 +669,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		if($mResult && isset($mResult['AuthToken'])) {
 			$oAuthenticatedUser = \Aurora\System\Api::getAuthenticatedUser();
-			if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Classes\User
+			if ($oAuthenticatedUser instanceof \Aurora\Modules\Core\Models\User
 					&& $oAuthenticatedUser->isNormalOrTenant()
 					&& $this->isUserNotFromBusinessTenant($oAuthenticatedUser)
 					// && isset($aArgs['EntryName'])
@@ -677,7 +677,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				)
 			{
 				$sXClientHeader = (string) \MailSo\Base\Http::SingletonInstance()->GetHeader('X-Client');
-				$bAllowMobileApps = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'AllowMobileApps');
+				$bAllowMobileApps = $this->getGroupSetting($oAuthenticatedUser->Id, 'AllowMobileApps');
 				if (strtolower($sXClientHeader) !== 'webclient' && (!is_bool($bAllowMobileApps) || !$bAllowMobileApps))
 				{
 					throw new \Aurora\System\Exceptions\ApiException(
@@ -697,10 +697,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function onTenantToResponseArray($aArgs, &$mResult)
 	{
 		$oTenant = $aArgs['Tenant'];
-		if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant && is_array($mResult))
+		if ($oTenant instanceof \Aurora\Modules\Core\Models\Tenant && is_array($mResult))
 		{
 			$mResult[self::GetName() . '::IsBusiness'] = $oTenant->{self::GetName() . '::IsBusiness'};
-			$mResult[self::GetName() . '::EnableGroupware'] = $this->GetGroupwareState($oTenant->EntityId);
+			$mResult[self::GetName() . '::EnableGroupware'] = $this->GetGroupwareState($oTenant->Id);
 			$mResult[self::GetName() . '::AliasesCount'] = $oTenant->{self::GetName() . '::AliasesCount'};
 			$mResult[self::GetName() . '::EmailAccountsCount'] = $oTenant->{self::GetName() . '::EmailAccountsCount'};
 			$mResult['Mail::TenantSpaceLimitMb'] = $oTenant->{'Mail::TenantSpaceLimitMb'};
@@ -754,7 +754,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			{
 				$oEavManager = \Aurora\System\Managers\Eav::getInstance();
 				$aFilters = ['IdTenant' => [$iTenantId, '=']];
-				$iUserCount = $oEavManager->getEntitiesCount(\Aurora\Modules\Core\Classes\User::class, $aFilters);
+				$iUserCount = $oEavManager->getEntitiesCount(\Aurora\Modules\Core\Models\User::class, $aFilters);
 				if ($iUserCount >= $iEmailAccountsLimit)
 				{
 					throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_EMAIL_ACCOUNTS_LIMIT_PLURAL', ['COUNT' => $iEmailAccountsLimit], $iEmailAccountsLimit));
@@ -765,7 +765,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			$oUser = \Aurora\System\Api::getAuthenticatedUser();
 			if (
-				$oUser instanceof \Aurora\Modules\Core\Classes\User
+				$oUser instanceof \Aurora\Modules\Core\Models\User
 				&& ($oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin
 					|| $oUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin)
 				&& isset($aArgs['Forced']) && $aArgs['Forced'] === true
@@ -786,12 +786,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			$oUser = \Aurora\System\Api::getAuthenticatedUser();
 			if (
-				$oUser instanceof \Aurora\Modules\Core\Classes\User
+				$oUser instanceof \Aurora\Modules\Core\Models\User
 				&& ($oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin
 					|| $oUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin)
 			)
 			{
-				//Only SuperAdmin or TenantAdmin can creaete Account if it was reserved
+				//Only SuperAdmin or TenantAdmin can create Account if it was reserved
 			}
 			else
 			{
@@ -809,7 +809,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			$oUser = \Aurora\System\Api::getAuthenticatedUser();
 			if (
-				$oUser instanceof \Aurora\Modules\Core\Classes\User
+				$oUser instanceof \Aurora\Modules\Core\Models\User
 				&& ($oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin
 					|| $oUser->Role === \Aurora\System\Enums\UserRole::TenantAdmin)
 			)
@@ -832,10 +832,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($mResult)
 		{
 			$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($mResult);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+			if ($oUser instanceof \Aurora\Modules\Core\Models\User)
 			{
 				$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($oUser->IdTenant);
-				if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
+				if ($oTenant instanceof \Aurora\Modules\Core\Models\Tenant)
 				{
 					if ($oTenant->{self::GetName() . '::IsBusiness'})
 					{
@@ -849,10 +849,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 					else
 					{
 						$oFilesDecorator = \Aurora\Modules\Files\Module::Decorator();
-						$iFilesQuotaMb = $this->getGroupSetting($oUser->EntityId, 'FilesQuotaMb');
+						$iFilesQuotaMb = $this->getGroupSetting($oUser->Id, 'FilesQuotaMb');
 						if ($oFilesDecorator && is_int($iFilesQuotaMb))
 						{
-							$oFilesDecorator->UpdateUserSpaceLimit($oUser->EntityId, $iFilesQuotaMb);
+							$oFilesDecorator->UpdateUserSpaceLimit($oUser->Id, $iFilesQuotaMb);
 						}
 					}
 				}
@@ -866,20 +866,20 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function onAfterCreateAccount($aArgs, &$mResult)
 	{
-		if ($mResult instanceof \Aurora\Modules\Mail\Classes\Account)
+		if ($mResult instanceof \Aurora\Modules\Mail\Models\MailAccount)
 		{
 			$oAccount = $mResult;
 			$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($oAccount->IdUser);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+			if ($oUser instanceof \Aurora\Modules\Core\Models\User)
 			{
 				$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($oUser->IdTenant);
-				if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant
+				if ($oTenant instanceof \Aurora\Modules\Core\Models\Tenant
 						&& $oUser->PublicId === $oAccount->Email)
 				{
 					$iMailQuotaMb = $oTenant->{self::GetName() . '::IsBusiness'}
 						? $oTenant->{'Mail::UserSpaceLimitMb'}
-						: $this->getGroupSetting($oUser->EntityId, 'MailQuotaMb');
-					\Aurora\Modules\Mail\Module::Decorator()->UpdateEntitySpaceLimits('User', $oUser->EntityId, $oUser->IdTenant, null, $iMailQuotaMb);
+						: $this->getGroupSetting($oUser->Id, 'MailQuotaMb');
+					\Aurora\Modules\Mail\Module::Decorator()->UpdateEntitySpaceLimits('User', $oUser->Id, $oUser->IdTenant, null, $iMailQuotaMb);
 				}
 			}
 		}
@@ -956,7 +956,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function onAfterUpdateTenant($aArgs, &$mResult)
 	{
 		$oUser = \Aurora\Api::getAuthenticatedUser();
-		if ($oUser instanceof  \Aurora\Modules\Core\Classes\User && $oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)
+		if ($oUser instanceof  \Aurora\Modules\Core\Models\User && $oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)
 		{
 			$iTenantId = (int) $aArgs['TenantId'];
 			if (!empty($iTenantId))
@@ -1014,7 +1014,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if (isset($aArgs['EntityType'], $aArgs['EntityId']) && 	$aArgs['EntityType'] === 'Tenant')
 		{
 			$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($aArgs['EntityId']);
-			if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
+			if ($oTenant instanceof \Aurora\Modules\Core\Models\Tenant)
 			{
 				$mResult['AllowEditUserSpaceLimitMb'] = $oTenant->{self::GetName() . '::IsBusiness'};
 			}
@@ -1022,10 +1022,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if (isset($aArgs['EntityType'], $aArgs['EntityId']) && 	$aArgs['EntityType'] === 'User')
 		{
 			$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aArgs['EntityId']);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+			if ($oUser instanceof \Aurora\Modules\Core\Models\User)
 			{
 				$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($oUser->IdTenant);
-				if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant)
+				if ($oTenant instanceof \Aurora\Modules\Core\Models\Tenant)
 				{
 					$mResult['AllowEditUserSpaceLimitMb'] = $oTenant->{self::GetName() . '::IsBusiness'};
 				}
@@ -1055,9 +1055,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		if ($this->isUserNotFromBusinessTenant($oAuthenticatedUser))
 		{
-			$aSettings['BannerUrlMobile'] = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'BannerUrlMobile');
-			$aSettings['BannerUrlDesktop'] = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'BannerUrlDesktop');
-			$aSettings['BannerLink'] = $this->getGroupSetting($oAuthenticatedUser->EntityId, 'BannerLink');
+			$aSettings['BannerUrlMobile'] = $this->getGroupSetting($oAuthenticatedUser->Id, 'BannerUrlMobile');
+			$aSettings['BannerUrlDesktop'] = $this->getGroupSetting($oAuthenticatedUser->Id, 'BannerUrlDesktop');
+			$aSettings['BannerLink'] = $this->getGroupSetting($oAuthenticatedUser->Id, 'BannerLink');
 		}
 
 		return $aSettings;
@@ -1068,7 +1068,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
 
 		$oTenant = \Aurora\Modules\Core\Module::Decorator()->GetTenantUnchecked($TenantId);
-		if ($oTenant instanceof \Aurora\Modules\Core\Classes\Tenant && $oTenant->{self::GetName() . '::IsBusiness'})
+		if ($oTenant instanceof \Aurora\Modules\Core\Models\Tenant && $oTenant->{self::GetName() . '::IsBusiness'})
 		{
 			$aAttributesToSave = [];
 			if (is_int($AliasesCount))
