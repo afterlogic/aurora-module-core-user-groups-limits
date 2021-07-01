@@ -38,18 +38,25 @@
     <q-inner-loading style="justify-content: flex-start;" :showing="loading || saving || deleting">
       <q-linear-progress query class="q-mt-sm" />
     </q-inner-loading>
+    <UnsavedChangesDialog ref="unsavedChangesDialog"/>
   </q-scroll-area>
 </template>
 
 <script>
+import UnsavedChangesDialog from 'src/components/UnsavedChangesDialog'
+
 import webApi from 'src/utils/web-api'
 import errors from 'src/utils/errors'
 import notification from 'src/utils/notification'
 
 import types from 'src/utils/types'
+import _ from 'lodash'
 
 export default {
   name: 'GroupsLimitsAdminSettings',
+  components: {
+    UnsavedChangesDialog
+  },
   mounted () {
     this.populate()
   },
@@ -63,7 +70,17 @@ export default {
       reservedList: []
     }
   },
+  beforeRouteLeave (to, from, next) {
+    if (this.hasChanges() && _.isFunction(this?.$refs?.unsavedChangesDialog?.openConfirmDiscardChangesDialog)) {
+      this.$refs.unsavedChangesDialog.openConfirmDiscardChangesDialog(next)
+    } else {
+      next()
+    }
+  },
   methods: {
+    hasChanges () {
+      return this.accountName !== ''
+    },
     populate () {
       this.getSettings()
     },
@@ -143,9 +160,12 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .select {
+  padding: 7px 9px 6px;
+  border: 1px solid #cccccc;
   width: 100%;
   overflow-y: scroll;
+  border-radius: 4px;
 }
 </style>
