@@ -15,4 +15,7 @@ export default {
       },
     ]
   },
+  getTenantOtherDataComponents () {
+    return import('src/../../../CoreUserGroupsLimits/vue/components/EditBusinessTenant')
+  },
 }
