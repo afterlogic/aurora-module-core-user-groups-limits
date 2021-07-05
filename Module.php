@@ -139,10 +139,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$sAccountName = \MailSo\Base\Utils::GetAccountNameFromEmail($sEmail);
 		$sDomain = \MailSo\Base\Utils::GetDomainFromEmail($sEmail);
-		$aDomainObjects = \Aurora\System\Api::GetModuleDecorator('MailDomains')->getDomainsManager()->getFullDomainsList()->toArray();
-		$aDomains = array_map(function ($oDomain) {
+		$aDomainObjects = \Aurora\System\Api::GetModuleDecorator('MailDomains')->getDomainsManager()->getFullDomainsList();
+		$aDomains = $aDomainObjects->map(function ($oDomain) {
 			return $oDomain->Name;
-		}, $aDomainObjects);
+		})->toArray();
+
 		$aReservedAccountNames = $this->getConfig('ReservedList', []);
 		if (
 			is_array($aDomains)
