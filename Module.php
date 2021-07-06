@@ -753,9 +753,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$iEmailAccountsLimit = $this->getBusinessTenantLimits($oTenant, 'EmailAccountsCount');
 			if (is_int($iEmailAccountsLimit) && $iEmailAccountsLimit > 0)
 			{
-				$oEavManager = \Aurora\System\Managers\Eav::getInstance();
-				$aFilters = ['IdTenant' => [$iTenantId, '=']];
-				$iUserCount = $oEavManager->getEntitiesCount(\Aurora\Modules\Core\Models\User::class, $aFilters);
+				$iUserCount = User::where('IdTenant', $iTenantId)->count();
 				if ($iUserCount >= $iEmailAccountsLimit)
 				{
 					throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_EMAIL_ACCOUNTS_LIMIT_PLURAL', ['COUNT' => $iEmailAccountsLimit], $iEmailAccountsLimit));
