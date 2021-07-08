@@ -9,7 +9,7 @@
           <div class="row q-mb-md">
             <div class="col-2 q-mt-sm" v-t="'COREUSERGROUPSLIMITS.LABEL_ADD_RESERVED_NAME'"></div>
             <div class="col-3">
-              <q-input outlined dense class="bg-white" v-model="accountName"/>
+              <q-input outlined dense bg-color="white" v-model="accountName"/>
             </div>
             <div class="col-3 q-mt-xs q-ml-md">
               <q-btn unelevated no-caps no-wrap dense class="q-ml-md q-px-sm" :ripple="false" color="primary"
