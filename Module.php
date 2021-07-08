@@ -139,10 +139,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$sAccountName = \MailSo\Base\Utils::GetAccountNameFromEmail($sEmail);
 		$sDomain = \MailSo\Base\Utils::GetDomainFromEmail($sEmail);
-		$aDomainObjects = \Aurora\System\Api::GetModuleDecorator('MailDomains')->getDomainsManager()->getFullDomainsList()->toArray();
-		$aDomains = array_map(function ($oDomain) {
+		$aDomainObjects = \Aurora\System\Api::GetModuleDecorator('MailDomains')->getDomainsManager()->getFullDomainsList();
+		$aDomains = $aDomainObjects->map(function ($oDomain) {
 			return $oDomain->Name;
-		}, $aDomainObjects);
+		})->toArray();
+
 		$aReservedAccountNames = $this->getConfig('ReservedList', []);
 		if (
 			is_array($aDomains)
@@ -752,9 +753,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$iEmailAccountsLimit = $this->getBusinessTenantLimits($oTenant, 'EmailAccountsCount');
 			if (is_int($iEmailAccountsLimit) && $iEmailAccountsLimit > 0)
 			{
-				$oEavManager = \Aurora\System\Managers\Eav::getInstance();
-				$aFilters = ['IdTenant' => [$iTenantId, '=']];
-				$iUserCount = $oEavManager->getEntitiesCount(\Aurora\Modules\Core\Models\User::class, $aFilters);
+				$iUserCount = User::where('IdTenant', $iTenantId)->count();
 				if ($iUserCount >= $iEmailAccountsLimit)
 				{
 					throw new \Exception($this->i18N('ERROR_BUSINESS_TENANT_EMAIL_ACCOUNTS_LIMIT_PLURAL', ['COUNT' => $iEmailAccountsLimit], $iEmailAccountsLimit));

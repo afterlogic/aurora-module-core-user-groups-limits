@@ -10,9 +10,12 @@ export default {
         tabName: 'reserved-list',
         title: 'COREUSERGROUPSLIMITS.ADMIN_SETTINGS_TAB_LABEL',
         component () {
-          return import('src/../../../CoreUserGroupsLimits/vue/components/ReservedListAdminSettings')
+          return import('./components/ReservedListAdminSettings')
         },
       },
     ]
+  },
+  getTenantOtherDataComponents () {
+    return import('src/../../../CoreUserGroupsLimits/vue/components/EditBusinessTenant')
   },
 }
