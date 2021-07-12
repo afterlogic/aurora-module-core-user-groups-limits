@@ -15,7 +15,14 @@ export default {
       },
     ]
   },
+
   getTenantOtherDataComponents () {
-    return import('src/../../../CoreUserGroupsLimits/vue/components/EditBusinessTenant')
+    return import('./components/EditBusinessTenant')
+  },
+
+  async getFiltersForUsers () {
+    return [
+      await import('./components/GroupFilterForUsers')
+    ]
   },
 }
