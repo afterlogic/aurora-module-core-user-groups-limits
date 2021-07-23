@@ -846,8 +846,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 						\Aurora\Modules\Files\Module::Decorator()->CheckAllocatedSpaceLimitForUsersInTenant($oTenant, $UserSpaceLimitMb);
 
-						$oUser->{'Files::UserSpaceLimitMb'} = $UserSpaceLimitMb;
-						$oUser->saveAttribute('Files::UserSpaceLimitMb');
+						$oUser->setExtendedProp('Files::UserSpaceLimitMb', $UserSpaceLimitMb);
+						$oUser->save();
 					}
 					else
 					{
@@ -917,8 +917,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 						$iFilesStorageQuotaMb = $this->getBusinessTenantLimitsFromConfig('FilesStorageQuotaMb');
 						if ($oFilesModule)
 						{
-							$oTenant->{'Files::UserSpaceLimitMb'} = $oFilesModule->getConfig('UserSpaceLimitMb');
-							$oTenant->{'Files::TenantSpaceLimitMb'} = $iFilesStorageQuotaMb;
+							$oTenant->setExtendedProp('Files::UserSpaceLimitMb', $oFilesModule->getConfig('UserSpaceLimitMb'));
+							$oTenant->setExtendedProp('Files::TenantSpaceLimitMb', $iFilesStorageQuotaMb);
 
 							$aAttributesToSave[] = 'Files::UserSpaceLimitMb';
 							$aAttributesToSave[] = 'Files::TenantSpaceLimitMb';
@@ -927,17 +927,17 @@ class Module extends \Aurora\System\Module\AbstractModule
 						$iMailStorageQuotaMb = $this->getBusinessTenantLimitsFromConfig('MailStorageQuotaMb');
 						if (is_int($iMailStorageQuotaMb))
 						{
-							$oTenant->{'Mail::TenantSpaceLimitMb'} = $iMailStorageQuotaMb;
+							$oTenant->setExtendedProp('Mail::TenantSpaceLimitMb', $iMailStorageQuotaMb);
 							$aAttributesToSave[] = 'Mail::TenantSpaceLimitMb';
 						}
 					}
 					else
 					{
-						$oTenant->{'Mail::AllowChangeUserSpaceLimit'} = false;
+						$oTenant->setExtendedProp('Mail::AllowChangeUserSpaceLimit', false);
 						$aAttributesToSave[] = 'Mail::AllowChangeUserSpaceLimit';
 					}
 
-					$oTenant->saveAttributes($aAttributesToSave);
+					$oTenant->save();
 				}
 
 				if (isset($aArgs[self::GetName() . '::EnableGroupware']) && is_bool($aArgs[self::GetName() . '::EnableGroupware']))
