@@ -15,7 +15,7 @@ var
 /**
 * @constructor
 */
-function СBusinessTenantLimitsSettingsView()
+function CBusinessTenantLimitsSettingsView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName, 'UpdateBusinessTenantLimits');
 
@@ -27,11 +27,11 @@ function СBusinessTenantLimitsSettingsView()
 	/*-- Editable fields */
 }
 
-_.extendOwn(СBusinessTenantLimitsSettingsView.prototype, CAbstractSettingsFormView.prototype);
+_.extendOwn(CBusinessTenantLimitsSettingsView.prototype, CAbstractSettingsFormView.prototype);
 
-СBusinessTenantLimitsSettingsView.prototype.ViewTemplate = '%ModuleName%_BusinessTenantLimitsSettingsView';
+CBusinessTenantLimitsSettingsView.prototype.ViewTemplate = '%ModuleName%_BusinessTenantLimitsSettingsView';
 
-СBusinessTenantLimitsSettingsView.prototype.getCurrentValues = function()
+CBusinessTenantLimitsSettingsView.prototype.getCurrentValues = function()
 {
 	return [
 		this.aliasesCount(),
@@ -41,7 +41,7 @@ _.extendOwn(СBusinessTenantLimitsSettingsView.prototype, CAbstractSettingsFormV
 	];
 };
 
-СBusinessTenantLimitsSettingsView.prototype.getParametersForSave = function ()
+CBusinessTenantLimitsSettingsView.prototype.getParametersForSave = function ()
 {
 	var oParameters = {
 		'TenantId': this.iTenantId,
@@ -53,13 +53,13 @@ _.extendOwn(СBusinessTenantLimitsSettingsView.prototype, CAbstractSettingsFormV
 	return oParameters;
 };
 
-СBusinessTenantLimitsSettingsView.prototype.setAccessLevel = function (sEntityType, iEntityId)
+CBusinessTenantLimitsSettingsView.prototype.setAccessLevel = function (sEntityType, iEntityId)
 {
 	this.iTenantId = (sEntityType === 'Tenant') ? iEntityId : 0;
 	this.updateSavedState();
 };
 
-СBusinessTenantLimitsSettingsView.prototype.parse = function (iEntityId, oResult)
+CBusinessTenantLimitsSettingsView.prototype.parse = function (iEntityId, oResult)
 {
 	if (iEntityId === this.iTenantId && oResult)
 	{
@@ -76,4 +76,4 @@ _.extendOwn(СBusinessTenantLimitsSettingsView.prototype, CAbstractSettingsFormV
 	this.updateSavedState();
 };
 
-module.exports = new СBusinessTenantLimitsSettingsView();
+module.exports = new CBusinessTenantLimitsSettingsView();

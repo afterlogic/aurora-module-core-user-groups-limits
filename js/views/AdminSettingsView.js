@@ -17,7 +17,7 @@ var
 /**
 * @constructor
 */
-function СAdminSettingsView() {
+function CAdminSettingsView() {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 
 	this.accountName = ko.observable('');
@@ -25,14 +25,14 @@ function СAdminSettingsView() {
 	this.selectedReservedNames = ko.observableArray([]);
 }
 
-_.extendOwn(СAdminSettingsView.prototype, CAbstractSettingsFormView.prototype);
+_.extendOwn(CAdminSettingsView.prototype, CAbstractSettingsFormView.prototype);
 
-СAdminSettingsView.prototype.ViewTemplate = '%ModuleName%_AdminSettingsView';
+CAdminSettingsView.prototype.ViewTemplate = '%ModuleName%_AdminSettingsView';
 
 /**
  * Runs after routing to this view.
  */
-СAdminSettingsView.prototype.onRouteChild = function ()
+CAdminSettingsView.prototype.onRouteChild = function ()
 {
 	this.accountName('');
 	this.selectedReservedNames([]);
@@ -42,7 +42,7 @@ _.extendOwn(СAdminSettingsView.prototype, CAbstractSettingsFormView.prototype);
 /**
  * Sends request to create a new reserved name.
  */
-СAdminSettingsView.prototype.addReservedName = function ()
+CAdminSettingsView.prototype.addReservedName = function ()
 {
 	if (this.accountName() === '')
 	{
@@ -74,7 +74,7 @@ _.extendOwn(СAdminSettingsView.prototype, CAbstractSettingsFormView.prototype);
 /**
  * Sends request to delete selected reserved names.
  */
-СAdminSettingsView.prototype.deleteReservedNames = function ()
+CAdminSettingsView.prototype.deleteReservedNames = function ()
 {
 	if (this.selectedReservedNames().length === 0)
 	{
@@ -113,7 +113,7 @@ _.extendOwn(СAdminSettingsView.prototype, CAbstractSettingsFormView.prototype);
 /**
  * Requests reserved names.
  */
-СAdminSettingsView.prototype.requestReservedNames = function ()
+CAdminSettingsView.prototype.requestReservedNames = function ()
 {
 	this.reservedNames([]);
 	Ajax.send(
@@ -136,9 +136,9 @@ _.extendOwn(СAdminSettingsView.prototype, CAbstractSettingsFormView.prototype);
  * @param {string} sEntityType Current entity type.
  * @param {number} iEntityId Indentificator of current intity.
  */
-СAdminSettingsView.prototype.setAccessLevel = function (sEntityType, iEntityId)
+CAdminSettingsView.prototype.setAccessLevel = function (sEntityType, iEntityId)
 {
 	this.visible(sEntityType === '');
 };
 
-module.exports = new СAdminSettingsView();
+module.exports = new CAdminSettingsView();
