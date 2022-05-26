@@ -1,3 +1,4 @@
+import GroupFilterForUsers from './components/GroupFilterForUsers'
 
 export default {
   moduleName: 'CoreUserGroupsLimits',
@@ -8,10 +9,10 @@ export default {
     return [
       {
         tabName: 'reserved-list',
-        title: 'COREUSERGROUPSLIMITS.ADMIN_SETTINGS_TAB_LABEL',
-        component () {
-          return import('./components/ReservedListAdminSettings')
-        },
+        tabTitle: 'COREUSERGROUPSLIMITS.ADMIN_SETTINGS_TAB_LABEL',
+        tabRouteChildren: [
+          { path: 'reserved-list', component: () => import('./components/ReservedListAdminSettings') },
+        ],
       },
     ]
   },
@@ -20,9 +21,9 @@ export default {
     return import('./components/EditBusinessTenant')
   },
 
-  async getFiltersForUsers () {
+  getFiltersForUsers () {
     return [
-      await import('./components/GroupFilterForUsers')
+      GroupFilterForUsers
     ]
   },
 }
