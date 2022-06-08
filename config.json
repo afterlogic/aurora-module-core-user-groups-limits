@@ -1,75 +1,112 @@
 {
-	"Disabled": [
-		false,
-		"bool"
-	],
-    "IncludeInMobile": [
-		true,
-		"bool"
-	],
-    "IncludeInDesktop": [
-		true,
-		"bool"
-	],
-	"GroupsLimits": [
-		[
-			{
-				"GroupName": "Free",
-				"EmailSendLimitPerDay": 150,
-				"MailSignature": "Sent with PrivateMail",
-				"MailQuotaMb": 500,
-				"FilesQuotaMb": 500,
-				"AllowMobileApps": false,
-				"BannerUrlMobile": "static/styles/images/modules/CoreUserGroupsLimits/upgrade_button.png",
-				"BannerUrlDesktop": "static/styles/images/modules/CoreUserGroupsLimits/upgrade_button_large.png",
-				"BannerLink": "https://privatemail.com/members/supporttickets.php",
-				"MaxAllowedActiveAliasCount": 2,
-				"AliasCreationIntervalDays": 7
-			},
-			{
-				"GroupName": "Standard",
-				"EmailSendLimitPerDay": 2500,
-				"MailSignature": "",
-				"MailQuotaMb": 10240,
-				"FilesQuotaMb": 10240,
-				"AllowMobileApps": true,
-				"BannerUrlMobile": "",
-				"BannerUrlDesktop": "",
-				"BannerLink": "",
-				"MaxAllowedActiveAliasCount": 2,
-				"AliasCreationIntervalDays": 7
-			},
-			{
-				"GroupName": "Pro",
-				"EmailSendLimitPerDay": 5000,
-				"MailSignature": "",
-				"MailQuotaMb": 20480,
-				"FilesQuotaMb": 20480,
-				"AllowMobileApps": true,
-				"BannerUrlMobile": "",
-				"BannerUrlDesktop": "",
-				"BannerLink": "",
-				"MaxAllowedActiveAliasCount": 2,
-				"AliasCreationIntervalDays": 7
-			}
-		],
-		"array"
-	],
-	"BusinessTenantLimits": [
-		[{
-			"AliasesCount": 20,
-			"EmailAccountsCount": 10,
-			"MailStorageQuotaMb": 102400,
-			"FilesStorageQuotaMb": 102400
-		}],
-		"array"
-	],
-	"GroupwareModules": [
-		["CorporateCalendar", "S3CorporateFilestorage", "SharedContacts", "SharedFiles", "TeamContacts", "OutlookSyncWebclient"],
-		"array"
-	],
-	"ReservedList": [
-		[],
-		"array"
-	]
+  "Disabled": [
+    false,
+    "bool"
+  ],
+  "Disabled_Description": [
+    "",
+    "string"
+  ],
+  "IncludeInMobile": [
+    true,
+    "bool"
+  ],
+  "IncludeInMobile_Description": [
+    "",
+    "string"
+  ],
+  "IncludeInDesktop": [
+    true,
+    "bool"
+  ],
+  "IncludeInDesktop_Description": [
+    "",
+    "string"
+  ],
+  "GroupsLimits": [
+    [
+      {
+        "GroupName": "Free",
+        "EmailSendLimitPerDay": 150,
+        "MailSignature": "Sent with PrivateMail",
+        "MailQuotaMb": 500,
+        "FilesQuotaMb": 500,
+        "AllowMobileApps": false,
+        "BannerUrlMobile": "static/styles/images/modules/CoreUserGroupsLimits/upgrade_button.png",
+        "BannerUrlDesktop": "static/styles/images/modules/CoreUserGroupsLimits/upgrade_button_large.png",
+        "BannerLink": "https://privatemail.com/members/supporttickets.php",
+        "MaxAllowedActiveAliasCount": 2,
+        "AliasCreationIntervalDays": 7
+      },
+      {
+        "GroupName": "Standard",
+        "EmailSendLimitPerDay": 2500,
+        "MailSignature": "",
+        "MailQuotaMb": 10240,
+        "FilesQuotaMb": 10240,
+        "AllowMobileApps": true,
+        "BannerUrlMobile": "",
+        "BannerUrlDesktop": "",
+        "BannerLink": "",
+        "MaxAllowedActiveAliasCount": 2,
+        "AliasCreationIntervalDays": 7
+      },
+      {
+        "GroupName": "Pro",
+        "EmailSendLimitPerDay": 5000,
+        "MailSignature": "",
+        "MailQuotaMb": 20480,
+        "FilesQuotaMb": 20480,
+        "AllowMobileApps": true,
+        "BannerUrlMobile": "",
+        "BannerUrlDesktop": "",
+        "BannerLink": "",
+        "MaxAllowedActiveAliasCount": 2,
+        "AliasCreationIntervalDays": 7
+      }
+    ],
+    "array"
+  ],
+  "GroupsLimits_Description": [
+    "",
+    "string"
+  ],
+  "BusinessTenantLimits": [
+    [
+      {
+        "AliasesCount": 20,
+        "EmailAccountsCount": 10,
+        "MailStorageQuotaMb": 102400,
+        "FilesStorageQuotaMb": 102400
+      }
+    ],
+    "array"
+  ],
+  "BusinessTenantLimits_Description": [
+    "",
+    "string"
+  ],
+  "GroupwareModules": [
+    [
+      "CorporateCalendar",
+      "S3CorporateFilestorage",
+      "SharedContacts",
+      "SharedFiles",
+      "TeamContacts",
+      "OutlookSyncWebclient"
+    ],
+    "array"
+  ],
+  "GroupwareModules_Description": [
+    "",
+    "string"
+  ],
+  "ReservedList": [
+    [],
+    "array"
+  ],
+  "ReservedList_Description": [
+    "",
+    "string"
+  ]
 }
