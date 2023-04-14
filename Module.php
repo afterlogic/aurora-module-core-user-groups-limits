@@ -129,6 +129,15 @@ class Module extends \Aurora\System\Module\AbstractModule
         // );
     }
 
+    /**
+     *
+     * @return Module
+     */
+    public static function Decorator()
+    {
+        return parent::Decorator();
+    }
+
     private function checkIfEmailReserved($sEmail)
     {
         $sAccountName = \MailSo\Base\Utils::GetAccountNameFromEmail($sEmail);
