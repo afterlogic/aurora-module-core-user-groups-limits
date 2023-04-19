@@ -16,6 +16,8 @@ use Aurora\Modules\Core\Models\User;
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
  * @copyright Copyright (c) 2023, Afterlogic Corp.
  *
+ * @property Settings $oModuleSettings
+ *
  * @package Modules
  */
 class Module extends \Aurora\System\Module\AbstractModule
@@ -86,7 +88,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $this->subscribeEvent('CoreUserGroups::Group::ToResponseArray', array($this, 'onGroupToResponseArray'));
         $this->subscribeEvent('CoreUserGroups::UpdateGroup::after', array($this, 'onAfterUpdateGroup'));
 
-        $aBusinessTenantLimits = $this->getConfig('BusinessTenantLimits', []);
+        $aBusinessTenantLimits = $this->oModuleSettings->BusinessTenantLimits;
         if (is_array($aBusinessTenantLimits) && count($aBusinessTenantLimits) > 0 && is_array($aBusinessTenantLimits[0])) {
             $aBusinessTenantLimits = $aBusinessTenantLimits[0];
         } else {
@@ -160,7 +162,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             })->toArray();
         }
 
-        $aReservedAccountNames = $this->getConfig('ReservedList', []);
+        $aReservedAccountNames = $this->oModuleSettings->ReservedList;
         if (
             is_array($aDomains)
             && is_array($aReservedAccountNames)
@@ -214,7 +216,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 'AliasCreationIntervalDays' => $oGroup->{self::GetName() . '::AliasCreationIntervalDays'},
             ];
         } else {
-            $aGroupsLimits = $this->getConfig('GroupsLimits', '');
+            $aGroupsLimits = $this->oModuleSettings->GroupsLimits;
             $iIndex = false;
             if ($oGroup instanceof \Aurora\Modules\CoreUserGroups\Models\Group) {
                 $iIndex = array_search($oGroup->Name, array_column($aGroupsLimits, 'GroupName'));
@@ -546,7 +548,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 if ($EnableGroupware) {
                     $oTenant->clearDisabledModules();
                 } else {
-                    $aGroupwareModules = $this->getConfig('GroupwareModules');
+                    $aGroupwareModules = $this->oModuleSettings->GroupwareModules;
                     if (is_array($aGroupwareModules) && count($aGroupwareModules) > 0) {
                         $oTenant->disableModules($aGroupwareModules);
                         $bResult = true;
@@ -679,7 +681,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     protected function getBusinessTenantLimitsFromConfig($sSettingName)
     {
-        $aBusinessTenantLimitsConfig = $this->getConfig('BusinessTenantLimits', []);
+        $aBusinessTenantLimitsConfig = $this->oModuleSettings->BusinessTenantLimits;
         $aBusinessTenantLimits = is_array($aBusinessTenantLimitsConfig) && count($aBusinessTenantLimitsConfig) > 0 ? $aBusinessTenantLimitsConfig[0] : [];
         return is_array($aBusinessTenantLimitsConfig) && isset($aBusinessTenantLimits[$sSettingName]) ? $aBusinessTenantLimits[$sSettingName] : null;
     }
@@ -992,7 +994,7 @@ class Module extends \Aurora\System\Module\AbstractModule
     {
         \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
 
-        return $this->getConfig('ReservedList', []);
+        return $this->oModuleSettings->ReservedList;
     }
 
     /**
@@ -1007,7 +1009,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         $bResult = false;
         $sAccountName = strtolower($AccountName);
-        $aCurrentReservedList = $this->getConfig('ReservedList', []);
+        $aCurrentReservedList = $this->oModuleSettings->ReservedList;
         if (in_array($sAccountName, $aCurrentReservedList)) {
             throw new \Exception($this->i18N('ERROR_NAME_ALREADY_IN_RESERVED_LIST'));
         } else {
@@ -1039,7 +1041,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         if (!is_array($ReservedNames) || empty($ReservedNames)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         } else {
-            $aCurrentReservedList = $this->getConfig('ReservedList', []);
+            $aCurrentReservedList = $this->oModuleSettings->ReservedList;
             $newReservedList = array_diff($aCurrentReservedList, $ReservedNames);
             //"array_values" needed to reset array keys after deletion
             $this->setConfig('ReservedList', array_values($newReservedList));
