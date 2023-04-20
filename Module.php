@@ -132,7 +132,14 @@ class Module extends \Aurora\System\Module\AbstractModule
     }
 
     /**
-     *
+     * @return Module
+     */
+    public static function getInstance()
+    {
+        return parent::getInstance();
+    }
+
+    /**
      * @return Module
      */
     public static function Decorator()
@@ -141,7 +148,6 @@ class Module extends \Aurora\System\Module\AbstractModule
     }
 
     /**
-     *
      * @return Settings
      */
     public function getModuleSettings()
@@ -825,7 +831,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                         $oFilesModule = \Aurora\Api::GetModule('Files');
                         $iFilesStorageQuotaMb = $this->getBusinessTenantLimitsFromConfig('FilesStorageQuotaMb');
                         if ($oFilesModule) {
-                            $oTenant->setExtendedProp('Files::UserSpaceLimitMb', $oFilesModule->getConfig('UserSpaceLimitMb'));
+                            $oTenant->setExtendedProp('Files::UserSpaceLimitMb', $oFilesModule->oModuleSettings->UserSpaceLimitMb);
                             $oTenant->setExtendedProp('Files::TenantSpaceLimitMb', $iFilesStorageQuotaMb);
 
                             $aAttributesToSave[] = 'Files::UserSpaceLimitMb';
