@@ -56,10 +56,8 @@ class Settings extends \Aurora\System\Module\Settings
                         "BannerLink" => "https://privatemail.com/members/supporttickets.php",
                         "MaxAllowedActiveAliasCount" => 2,
                         "AliasCreationIntervalDays" => 7
-                    
                     ],
                     [
-
                         "GroupName" => "Standard",
                         "EmailSendLimitPerDay" => 2500,
                         "MailSignature" => "",
