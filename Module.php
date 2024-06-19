@@ -76,9 +76,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         }
 
         $this->subscribeEvent('Core::CreateUser::before', array($this, 'onBeforeCreateUser'));
-        $this->subscribeEvent('AdminPanelWebclient::CreateTenant::after', array($this, 'onAfterAdminPanelCreateTenant')); /** @deprecated since version 8.3.7 **/
         $this->subscribeEvent('Core::CreateTenant::after', array($this, 'onAfterCreateTenant'));
-        $this->subscribeEvent('AdminPanelWebclient::UpdateEntity::after', array($this, 'onAfterAdminPanelUpdateTenant')); /** @deprecated since version 8.3.7 **/
         $this->subscribeEvent('Core::UpdateTenant::after', array($this, 'onAfterUpdateTenant'));
         $this->subscribeEvent('Core::Tenant::ToResponseArray', array($this, 'onTenantToResponseArray'));
         $this->subscribeEvent('Core::CreateUser::after', array($this, 'onAfterCreateUser'));
@@ -807,14 +805,6 @@ class Module extends \Aurora\System\Module\AbstractModule
         }
     }
 
-    /**
-     * @deprecated since version 8.3.7
-     */
-    public function onAfterAdminPanelCreateTenant($aArgs, &$mResult)
-    {
-        $this->onAfterCreateTenant($aArgs, $mResult);
-    }
-
     public function onAfterCreateTenant($aArgs, &$mResult)
     {
         $iTenantId = $mResult;
@@ -856,14 +846,6 @@ class Module extends \Aurora\System\Module\AbstractModule
                 }
             }
         }
-    }
-
-    /**
-     * @deprecated since version 8.3.7
-     */
-    public function onAfterAdminPanelUpdateTenant($aArgs, &$mResult)
-    {
-        $this->onAfterUpdateTenant($aArgs, $mResult);
     }
 
     public function onAfterUpdateTenant($aArgs, &$mResult)
